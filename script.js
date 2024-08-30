@@ -1,22 +1,36 @@
-// Create separate AudioContext instances for each audio
-const audioContext1 = new (window.AudioContext || window.webkitAudioContext)();
-const audioContext2 = new (window.AudioContext || window.webkitAudioContext)();
+/***** START: Create Audio Context ******/
 
-// Initialize track1GainValue
-let track1GainValue = 1; // Default value for track1GainValue
-let track2GainValue = 1; // Default value for track1GainValue
+// Create a single AudioContext
+const audioContext = new (window.AudioContext || window.webkitAudioContext)();
 
-// Create a GainNode
-const gainNode1 = audioContext1.createGain();
-const gainNode2 = audioContext2.createGain();
+// Create GainNodes for each track
+const gainNode1 = audioContext.createGain();
+const gainNode2 = audioContext.createGain();
 
-// Connect the GainNode to the destination (speakers)
-gainNode1.connect(audioContext1.destination);
-gainNode2.connect(audioContext2.destination);
+// Create a master GainNode
+const masterGainNode = audioContext.createGain();
 
-// Set the initial volume (0.5 is 50% volume, 1 is 100% volume)
-gainNode1.gain.value = track1GainValue; // Use the initialized value
+// Connect the master GainNode to the destination
+masterGainNode.connect(audioContext.destination);
+
+// Connect track GainNodes to the master GainNode
+gainNode1.connect(masterGainNode);
+gainNode2.connect(masterGainNode);
+
+// value between 0 and 1
+let track1GainValue = 1;
+let track2GainValue = 1;
+
+// Set initial volume for each track
+gainNode1.gain.value = track1GainValue;
 gainNode2.gain.value = track2GainValue;
+
+/***** END: Create Audio Context ******/
+
+
+
+
+/***** START: Initialize Global Variables ******/
 
 // Elements
 const audioFileInput1 = document.getElementById('audioFileInput1');
@@ -44,113 +58,223 @@ let rotationStartTime2 = 0;
 let rotationAngle1 = 0;
 let rotationAngle2 = 0;
 
-// Define track boundaries for the new slider
+/***** END: Initialize Global Variables ******/
+
+
+
+
+
+
+
+/***** START: Handle Vertical & Horizontal Sliders ******/
+
+// Define track boundaries for the sliders
 const trackRight = document.querySelector('#VolumeRightTrack');
 const handleRight = document.querySelector('#VolumeRightHandle');
-
 const trackYRight1 = parseFloat(trackRight.getAttribute('y1')); // Top
 const trackYRight2 = parseFloat(trackRight.getAttribute('y2')); // Bottom
 const handleHeightRight = parseFloat(handleRight.getAttribute('height'));
 
-// Select elements
-const track = document.querySelector('#VolumeLeftTrack');
-const handle = document.querySelector('#VolumeLeftHandle');
+const trackLeft = document.querySelector('#VolumeLeftTrack');
+const handleLeft = document.querySelector('#VolumeLeftHandle');
+const trackY1 = parseFloat(trackLeft.getAttribute('y1')); // Top
+const trackY2 = parseFloat(trackLeft.getAttribute('y2')); // Bottom
+const handleHeight = parseFloat(handleLeft.getAttribute('height'));
 
-// Define track boundaries
-const trackY1 = parseFloat(track.getAttribute('y1')); // Top
-const trackY2 = parseFloat(track.getAttribute('y2')); // Bottom
-const handleHeight = parseFloat(handle.getAttribute('height'));
+const faderTrack = document.querySelector('#FadeTrack');
+const faderHandle = document.querySelector('#FadeHandle');
+const faderTrackX1 = parseFloat(faderTrack.getAttribute('x1')); // Left
+const faderTrackX2 = parseFloat(faderTrack.getAttribute('x2')); // Right
+const faderHandleWidth = parseFloat(faderHandle.getAttribute('width'));
 
 // Calculate the initial offset of the handle relative to the mouse position
 let initialMouseY = 0;
 let initialHandleY = 0;
+let initialMouseX = 0;
+let initialHandleX = 0;
+let currentSlider = null; // To track which slider is being dragged
 
-// Helper function to constrain values
-const clamp = (value, min, max) => Math.max(min, Math.min(value, max));
-
-// Function to update handle and output value
+// Function to update handle and output value for the left volume slider
 const updateHandleLeft = (y) => {
-  if (!isNaN(y)) {
-    // Constrain handle to the track boundaries
-    const constrainedY = clamp(y, trackY2 - handleHeight, trackY1);
-    handle.setAttribute('y', constrainedY);
-
-    // Calculate and output the reversed normalized value (1 - normalizedValue)
-    const normalizedValue = (constrainedY - (trackY2 - handleHeight)) / (trackY1 - (trackY2 - handleHeight));
-    track1GainValue = 1 - normalizedValue;
-
-    // Update the gain value for gainNode1
-    gainNode1.gain.value = track1GainValue;
-  }
+    if (!isNaN(y)) {
+        const constrainedY = clamp(y, trackY2 - handleHeight, trackY1);
+        handleLeft.setAttribute('y', constrainedY);
+        const normalizedValue = (constrainedY - (trackY2 - handleHeight)) / (trackY1 - (trackY2 - handleHeight));
+        track1GainValue = 1 - normalizedValue;
+        gainNode1.gain.value = track1GainValue;
+    }
 };
 
-// Function to update the handle and output value for the new slider
+// Function to update handle and output value for the right volume slider
 const updateHandleRight = (y) => {
     if (!isNaN(y)) {
-      // Constrain handle to the track boundaries
-      const constrainedY = clamp(y, trackYRight2 - handleHeightRight, trackYRight1);
-      handleRight.setAttribute('y', constrainedY);
-  
-      // Calculate and output the reversed normalized value (1 - normalizedValue)
-      const normalizedValue = (constrainedY - (trackYRight2 - handleHeightRight)) / (trackYRight1 - (trackYRight2 - handleHeightRight));
-      track2GainValue = 1 - normalizedValue;
-      
-      // Update the gain value of the second audio context
-      gainNode2.gain.value = track2GainValue;
+        const constrainedY = clamp(y, trackYRight2 - handleHeightRight, trackYRight1);
+        handleRight.setAttribute('y', constrainedY);
+        // const normalizedValue = (constrainedY - (trackYRight2 - handleHeightRight)) / (trackYRight1 - (trackYRight2 - handleHeight));
+        const normalizedValue = (constrainedY - (trackYRight2 - handleHeightRight)) / (trackYRight1 - (trackYRight2 - handleHeightRight));
+        track2GainValue = 1 - normalizedValue;
+        gainNode2.gain.value = track2GainValue;
     }
-  };
+};
 
-// Initialize dragging
-let isDraggingLeftVolume = false;
+// Function to update handle and output value for the master fader
+const updateFader = (x) => {
+    if (!isNaN(x)) {
+        // Constrain the handle's position within the track's boundaries
+        const constrainedX = clamp(x, faderTrackX1, faderTrackX2 - faderHandleWidth);
+        faderHandle.setAttribute('x', constrainedX);
 
-handle.addEventListener('mousedown', (e) => {
-    isDraggingLeftVolume = true;
-  initialMouseY = e.clientY;
-  initialHandleY = parseFloat(handle.getAttribute('y'));
-  e.preventDefault(); // Prevent default behavior for better dragging experience
+        // Reverse the normalized gain value
+        const normalizedValue = 1 - (constrainedX - faderTrackX1) / (faderTrackX2 - faderTrackX1 - faderHandleWidth);
+        masterGainNode.gain.value = normalizedValue; // Adjust the gain value
+    }
+};
+
+// Event handlers for dragging sliders
+const onMouseMove = (e) => {
+    if (currentSlider) {
+        const mouseY = e.clientY;
+        const mouseX = e.clientX;
+        const deltaY = mouseY - initialMouseY;
+        const deltaX = mouseX - initialMouseX;
+        const newHandleY = initialHandleY + deltaY;
+        const newHandleX = initialHandleX + deltaX;
+
+        if (currentSlider === 'left') {
+            updateHandleLeft(newHandleY);
+        } else if (currentSlider === 'right') {
+            updateHandleRight(newHandleY);
+        } else if (currentSlider === 'fader') {
+            updateFader(newHandleX);
+        }
+    }
+};
+
+const onMouseUp = () => {
+    currentSlider = null;
+};
+
+handleLeft.addEventListener('mousedown', (e) => {
+    currentSlider = 'left';
+    initialMouseY = e.clientY;
+    initialHandleY = parseFloat(handleLeft.getAttribute('y'));
+    e.preventDefault();
 });
-
-document.addEventListener('mousemove', (e) => {
-  if (isDraggingLeftVolume) {
-    // Calculate the new handle position based on mouse movement
-    const mouseY = e.clientY;
-    const deltaY = mouseY - initialMouseY;
-    const newHandleY = initialHandleY + deltaY;
-
-    // Update handle position and output value
-    updateHandleLeft(newHandleY);
-  }
-});
-
-document.addEventListener('mouseup', () => {
-    isDraggingLeftVolume = false;
-});
-
-// Initialize dragging for the new slider
-let isDraggingRightVolume = false;
 
 handleRight.addEventListener('mousedown', (e) => {
-    isDraggingRightVolume = true;
-  initialMouseY = e.clientY;
-  initialHandleY = parseFloat(handleRight.getAttribute('y'));
-  e.preventDefault(); // Prevent default behavior for better dragging experience
+    currentSlider = 'right';
+    initialMouseY = e.clientY;
+    initialHandleY = parseFloat(handleRight.getAttribute('y'));
+    e.preventDefault();
 });
 
-document.addEventListener('mousemove', (e) => {
-  if (isDraggingRightVolume) {
-    // Calculate the new handle position based on mouse movement
-    const mouseY = e.clientY;
-    const deltaY = mouseY - initialMouseY;
-    const newHandleY = initialHandleY + deltaY;
-
-    // Update handle position and output value
-    updateHandleRight(newHandleY);
-  }
+faderHandle.addEventListener('mousedown', (e) => {
+    currentSlider = 'fader';
+    initialMouseX = e.clientX;
+    initialHandleX = parseFloat(faderHandle.getAttribute('x'));
+    e.preventDefault();
 });
 
-document.addEventListener('mouseup', () => {
-    isDraggingRightVolume = false;
+document.addEventListener('mousemove', onMouseMove);
+document.addEventListener('mouseup', onMouseUp);
+
+/***** END: Handle Vertical Volume Sliders ******/
+
+
+/***** START: Function to play the audio ******/
+
+// Function to create and play audio source
+function playAudio(buffer, pauseTime, gainNode) {
+    const source = audioContext.createBufferSource();
+    source.buffer = buffer;
+    source.connect(gainNode);
+    source.start(0, pauseTime); // Start playing from the paused time
+    return source;
+}
+
+/***** END: Function to play the audio ******/
+
+
+
+/***** START: Trigger audio play on toggle of start/stop button ******/
+
+// Function to toggle audio play/pause
+function toggleAudio(bufferNumber) {
+    if (bufferNumber === 1) {
+        if (!audioBuffer1) {
+            console.warn('Please select Audio 1 file first.');
+            return;
+        }
+        if (isPlaying1) {
+            // Pause audio 1
+            audioContext.suspend().then(() => {
+                isPlaying1 = false;
+                pauseTime1 += audioContext.currentTime - startTime1;
+                rotationAngle1 += (pauseTime1 - rotationStartTime1) * 180; // Update rotation angle
+            });
+        } else {
+            // Resume or play audio 1
+            if (!source1) {
+                source1 = playAudio(audioBuffer1, pauseTime1, gainNode1);
+                rotationStartTime1 = audioContext.currentTime;
+            }
+            audioContext.resume().then(() => {
+                isPlaying1 = true;
+            });
+        }
+    } else if (bufferNumber === 2) {
+        if (!audioBuffer2) {
+            console.warn('Please select Audio 2 file first.');
+            return;
+        }
+        if (isPlaying2) {
+            // Pause audio 2
+            audioContext.suspend().then(() => {
+                isPlaying2 = false;
+                pauseTime2 += audioContext.currentTime - startTime2;
+                rotationAngle2 += (pauseTime2 - rotationStartTime2) * 180; // Update rotation angle
+            });
+        } else {
+            // Resume or play audio 2
+            if (!source2) {
+                source2 = playAudio(audioBuffer2, pauseTime2, gainNode2);
+                rotationStartTime2 = audioContext.currentTime;
+            }
+            audioContext.resume().then(() => {
+                isPlaying2 = true;
+            });
+        }
+    }
+}
+
+
+// Attach event listeners to toggle buttons
+toggleButton1.addEventListener('click', function() {
+    toggleAudio(1);
 });
+
+toggleButton2.addEventListener('click', function() {
+    toggleAudio(2);
+});
+
+/***** END: Trigger audio play on toggle of start/stop button ******/
+
+
+
+
+
+/***** START: Create file inputs as SVG elements ******/
+
+// Create hidden file input elements
+const fileInput1 = document.createElement('input');
+fileInput1.type = 'file';
+fileInput1.style.display = 'none'; // Keep it hidden
+document.body.appendChild(fileInput1);
+
+const fileInput2 = document.createElement('input');
+fileInput2.type = 'file';
+fileInput2.style.display = 'none'; // Keep it hidden
+document.body.appendChild(fileInput2);
 
 // Function to handle file input change
 function handleFileInput(event, bufferNumber) {
@@ -162,7 +286,7 @@ function handleFileInput(event, bufferNumber) {
         const arrayBuffer = e.target.result;
 
         if (bufferNumber === 1) {
-            audioContext1.decodeAudioData(arrayBuffer, function(buffer) {
+            audioContext.decodeAudioData(arrayBuffer, function(buffer) {
                 audioBuffer1 = buffer;
                 console.log(audioBuffer1);
                 console.log('Audio 1 data decoded successfully');
@@ -170,7 +294,7 @@ function handleFileInput(event, bufferNumber) {
                 console.error('Error decoding audio data:', error);
             });
         } else if (bufferNumber === 2) {
-            audioContext2.decodeAudioData(arrayBuffer, function(buffer) {
+            audioContext.decodeAudioData(arrayBuffer, function(buffer) {
                 audioBuffer2 = buffer;
                 console.log('Audio 2 data decoded successfully');
             }, function(error) {
@@ -181,99 +305,51 @@ function handleFileInput(event, bufferNumber) {
     reader.readAsArrayBuffer(file);
 }
 
-// Attach event listeners to file inputs
-audioFileInput1.addEventListener('change', function(event) {
+// Attach event listeners to the hidden file inputs
+fileInput1.addEventListener('change', function(event) {
     handleFileInput(event, 1);
 });
 
-audioFileInput2.addEventListener('change', function(event) {
+fileInput2.addEventListener('change', function(event) {
     handleFileInput(event, 2);
 });
 
-// Function to create and play audio source
-function playAudio(audioContext, buffer, pauseTime, gainNode) {
-    const source = audioContext.createBufferSource();
-    source.buffer = buffer;
-    source.connect(gainNode).connect(audioContext.destination);
-    source.start(0, pauseTime); // Start playing from the paused time
-    return source;
-}
+// Get the <g> elements
+const addButton1 = document.querySelector('.left-table--add');
+const addButton2 = document.querySelector('.right-table--add');
+
+// Add click event listeners to the <g> elements to trigger the hidden file inputs
+addButton1.addEventListener('click', function() {
+    fileInput1.click();
+});
+
+addButton2.addEventListener('click', function() {
+    fileInput2.click();
+});
+
+/***** END: Create file inputs as SVG elements ******/
+
+
+
+
+
+/***** Start: Animate the disks on play ******/
 
 // Function to update disk rotation
 function updateDiskRotation(disk, angle) {
     disk.style.transform = `rotate(${angle}deg)`;
 }
 
-// Function to toggle audio play/pause
-function toggleAudio(bufferNumber) {
-    if (bufferNumber === 1) {
-        if (!audioBuffer1) {
-            console.warn('Please select Audio 1 file first.');
-            return;
-        }
-        if (isPlaying1) {
-            // Pause audio 1
-            audioContext1.suspend().then(() => {
-                isPlaying1 = false;
-                pauseTime1 += audioContext1.currentTime - startTime1;
-                rotationAngle1 += (pauseTime1 - rotationStartTime1) * 180; // Update rotation angle
-            });
-        } else {
-            // Resume or play audio 1
-            if (!source1) {
-                source1 = playAudio(audioContext1, audioBuffer1, pauseTime1, gainNode1);
-                rotationStartTime1 = audioContext1.currentTime;
-            }
-            audioContext1.resume().then(() => {
-                isPlaying1 = true;
-            });
-        }
-    } else if (bufferNumber === 2) {
-        if (!audioBuffer2) {
-            console.warn('Please select Audio 2 file first.');
-            return;
-        }
-        if (isPlaying2) {
-            // Pause audio 2
-            audioContext2.suspend().then(() => {
-                isPlaying2 = false;
-                pauseTime2 += audioContext2.currentTime - startTime2;
-                rotationAngle2 += (pauseTime2 - rotationStartTime2) * 180; // Update rotation angle
-            });
-        } else {
-            // Resume or play audio 2
-            if (!source2) {
-                source2 = playAudio(audioContext2, audioBuffer2, pauseTime2, gainNode2);
-                rotationStartTime2 = audioContext2.currentTime;
-            }
-            audioContext2.resume().then(() => {
-                isPlaying2 = true;
-            });
-        }
-    }
-}
-
-// Attach event listeners to toggle buttons
-toggleButton1.addEventListener('click', function() {
-    toggleAudio(1);
-    console.log('spin table left');
-});
-
-toggleButton2.addEventListener('click', function() {
-    toggleAudio(2);
-    console.log('spin table right');
-});
-
 // Rotate the disks continuously
 function animateDisks() {
-    const currentTime1 = audioContext1.currentTime;
+    const currentTime1 = audioContext.currentTime;
     if (isPlaying1) {
         rotationAngle1 += (currentTime1 - rotationStartTime1) * 180; // Degrees per second
         rotationStartTime1 = currentTime1;
         updateDiskRotation(leftDisk, rotationAngle1);
     }
 
-    const currentTime2 = audioContext2.currentTime;
+    const currentTime2 = audioContext.currentTime;
     if (isPlaying2) {
         rotationAngle2 += (currentTime2 - rotationStartTime2) * 180; // Degrees per second
         rotationStartTime2 = currentTime2;
@@ -285,3 +361,17 @@ function animateDisks() {
 
 // Start animation loop
 animateDisks();
+
+/***** END: Animate the disks on play ******/
+
+
+
+
+
+
+/***** START: Helper Functions ******/
+
+// Helper function to constrain values
+const clamp = (value, min, max) => Math.max(min, Math.min(value, max));
+
+/***** END: Helper Functions ******/

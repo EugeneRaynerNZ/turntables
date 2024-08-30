@@ -11,21 +11,33 @@ svg * {
     transform-box: fill-box;
 } */
 
-#ToggleButton1, #ToggleButton2, #VolumeLeftHandle, #VolumeRightHandle {
+.left-table--start, .right-table--start, #VolumeLeftHandle, #VolumeRightHandle, .left-table--add, .right-table--add {
     cursor: pointer;
 }
 
-#ToggleButton1:hover rect, #ToggleButton2:hover rect {
+.left-table--start rect, .right-table--start rect, .left-table--start path, .right-table--start path, .left-table--add rect, .right-table--add rect, .left-table--add path, .right-table--add path {
+    transition: all 0.2s;
+}
+
+.left-table--start:hover rect, .right-table--start:hover rect {
     fill: #4BF1A5
 }
 
-#ToggleButton1:hover path, #ToggleButton2:hover path {
+.left-table--start:hover path, .right-table--start:hover path {
     fill: black
 }
 
 .left-table--disk, .right-table--disk {
     transform-origin: center center;
     transform-box: fill-box;
+}
+
+.left-table--add:hover rect, .right-table--add:hover rect {
+    fill: black
+}
+
+.left-table--add:hover path, .right-table--add:hover path {
+    fill: white
 }
 
 
