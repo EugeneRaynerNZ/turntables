@@ -28,8 +28,6 @@ gainNode2.gain.value = track2GainValue;
 /***** END: Create Audio Context ******/
 
 
-
-
 /***** START: Initialize Global Variables ******/
 
 // Elements
@@ -62,8 +60,160 @@ let rotationAngle2 = 0;
 
 
 
+/***** START: Function to play the audio ******/
+
+// Function to create and play audio source
+function playAudio(buffer, pauseTime, gainNode) {
+    const source = audioContext.createBufferSource();
+    source.buffer = buffer;
+    source.connect(gainNode);
+    source.start(0, pauseTime); // Start playing from the paused time
+    return source;
+}
+
+/***** END: Function to play the audio ******/
 
 
+
+// Function to stop and disconnect audio sources
+function stopAudioSource(source, bufferNumber) {
+    if (source) {
+        source.stop();
+        source.disconnect();
+        if (bufferNumber === 1) {
+            source1 = null;
+        } else if (bufferNumber === 2) {
+            source2 = null;
+        }
+    }
+}
+
+
+/***** START: Trigger audio play on toggle of start/stop button ******/
+
+// Function to toggle audio play/pause
+function toggleAudio(bufferNumber) {
+    if (bufferNumber === 1) {
+        if (!audioBuffer1) {
+            console.warn('Please select Audio 1 file first.');
+            return;
+        }
+        if (isPlaying1) {
+            // Pause audio 1
+            stopAudioSource(source1, 1);
+            isPlaying1 = false;
+            pauseTime1 += audioContext.currentTime - startTime1;
+            rotationAngle1 += (pauseTime1 - rotationStartTime1) * 180; // Update rotation angle
+        } else {
+            // Resume or play audio 1
+            source1 = playAudio(audioBuffer1, pauseTime1, gainNode1);
+            startTime1 = audioContext.currentTime;
+            rotationStartTime1 = audioContext.currentTime;
+            isPlaying1 = true;
+        }
+    } else if (bufferNumber === 2) {
+        if (!audioBuffer2) {
+            console.warn('Please select Audio 2 file first.');
+            return;
+        }
+        if (isPlaying2) {
+            // Pause audio 2
+            stopAudioSource(source2, 2);
+            isPlaying2 = false;
+            pauseTime2 += audioContext.currentTime - startTime2;
+            rotationAngle2 += (pauseTime2 - rotationStartTime2) * 180; // Update rotation angle
+        } else {
+            // Resume or play audio 2
+            source2 = playAudio(audioBuffer2, pauseTime2, gainNode2);
+            startTime2 = audioContext.currentTime;
+            rotationStartTime2 = audioContext.currentTime;
+            isPlaying2 = true;
+        }
+    }
+}
+
+// Attach event listeners to toggle buttons
+toggleButton1.addEventListener('click', function() {
+    toggleAudio(1);
+});
+
+toggleButton2.addEventListener('click', function() {
+    toggleAudio(2);
+});
+
+/***** END: Trigger audio play on toggle of start/stop button ******/
+
+
+
+
+/***** START: Create file inputs as SVG elements ******/
+
+// Create hidden file input elements
+const fileInput1 = document.createElement('input');
+fileInput1.type = 'file';
+fileInput1.style.display = 'none'; // Keep it hidden
+document.body.appendChild(fileInput1);
+
+const fileInput2 = document.createElement('input');
+fileInput2.type = 'file';
+fileInput2.style.display = 'none'; // Keep it hidden
+document.body.appendChild(fileInput2);
+
+// Function to handle file input change
+function handleFileInput(event, bufferNumber) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const arrayBuffer = e.target.result;
+
+        if (bufferNumber === 1) {
+            audioContext.decodeAudioData(arrayBuffer, function(buffer) {
+                audioBuffer1 = buffer;
+                console.log(audioBuffer1);
+                console.log('Audio 1 data decoded successfully');
+                toggleButton1.classList.remove('disabled');
+                
+            }, function(error) {
+                console.error('Error decoding audio data:', error);
+            });
+        } else if (bufferNumber === 2) {
+            audioContext.decodeAudioData(arrayBuffer, function(buffer) {
+                audioBuffer2 = buffer;
+                console.log('Audio 2 data decoded successfully');
+                toggleButton2.classList.remove('disabled');
+            }, function(error) {
+                console.error('Error decoding audio data:', error);
+            });
+        }
+    };
+    reader.readAsArrayBuffer(file);
+}
+
+// Attach event listeners to the hidden file inputs
+fileInput1.addEventListener('change', function(event) {
+    handleFileInput(event, 1);
+});
+
+fileInput2.addEventListener('change', function(event) {
+    handleFileInput(event, 2);
+});
+
+// Get the <g> elements
+const addButton1 = document.querySelector('.left-table--add');
+const addButton2 = document.querySelector('.right-table--add');
+
+// Add click event listeners to the <g> elements to trigger the hidden file inputs
+addButton1.addEventListener('click', function() {
+    fileInput1.click();
+});
+
+addButton2.addEventListener('click', function() {
+    fileInput2.click();
+});
+
+/***** END: Create file inputs as SVG elements ******/
 
 
 /***** START: Handle Vertical & Horizontal Sliders ******/
@@ -117,18 +267,40 @@ const updateHandleRight = (y) => {
     }
 };
 
-// Function to update handle and output value for the master fader
+// // Function to update handle and output value for the master fader
+// const updateFader = (x) => {
+//     if (!isNaN(x)) {
+//         // Constrain the handle's position within the track's boundaries
+//         const constrainedX = clamp(x, faderTrackX1, faderTrackX2 - faderHandleWidth);
+//         faderHandle.setAttribute('x', constrainedX);
+
+//         // Normalize the constrained handle position to a value between 0 and 1
+//         const normalizedValue = (constrainedX - faderTrackX1) / (faderTrackX2 - faderTrackX1 - faderHandleWidth);
+
+//         // Adjust the balance between left and right tracks
+//         masterGainNode.gain.value = normalizedValue;  // This controls the balance
+//     }
+// };
+
+// Function to update handle and output value for the crossfader
 const updateFader = (x) => {
     if (!isNaN(x)) {
         // Constrain the handle's position within the track's boundaries
         const constrainedX = clamp(x, faderTrackX1, faderTrackX2 - faderHandleWidth);
         faderHandle.setAttribute('x', constrainedX);
 
-        // Reverse the normalized gain value
-        const normalizedValue = 1 - (constrainedX - faderTrackX1) / (faderTrackX2 - faderTrackX1 - faderHandleWidth);
-        masterGainNode.gain.value = normalizedValue; // Adjust the gain value
+        // Normalize the constrained handle position to a value between 0 and 1
+        const normalizedValue = (constrainedX - faderTrackX1) / (faderTrackX2 - faderTrackX1 - faderHandleWidth);
+
+        // Set gain values for the left and right audio sources based on fader position
+        gainNode1.gain.value = 1 - normalizedValue;  // Left track fades out as the handle moves right
+        gainNode2.gain.value = normalizedValue;    // Right track fades in as the handle moves right
     }
 };
+
+// Example of clamping function, if not already defined
+// const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+
 
 // Event handlers for dragging sliders
 const onMouseMove = (e) => {
@@ -179,157 +351,6 @@ document.addEventListener('mousemove', onMouseMove);
 document.addEventListener('mouseup', onMouseUp);
 
 /***** END: Handle Vertical Volume Sliders ******/
-
-
-/***** START: Function to play the audio ******/
-
-// Function to create and play audio source
-function playAudio(buffer, pauseTime, gainNode) {
-    const source = audioContext.createBufferSource();
-    source.buffer = buffer;
-    source.connect(gainNode);
-    source.start(0, pauseTime); // Start playing from the paused time
-    return source;
-}
-
-/***** END: Function to play the audio ******/
-
-
-
-/***** START: Trigger audio play on toggle of start/stop button ******/
-
-// Function to toggle audio play/pause
-function toggleAudio(bufferNumber) {
-    if (bufferNumber === 1) {
-        if (!audioBuffer1) {
-            console.warn('Please select Audio 1 file first.');
-            return;
-        }
-        if (isPlaying1) {
-            // Pause audio 1
-            audioContext.suspend().then(() => {
-                isPlaying1 = false;
-                pauseTime1 += audioContext.currentTime - startTime1;
-                rotationAngle1 += (pauseTime1 - rotationStartTime1) * 180; // Update rotation angle
-            });
-        } else {
-            // Resume or play audio 1
-            if (!source1) {
-                source1 = playAudio(audioBuffer1, pauseTime1, gainNode1);
-                rotationStartTime1 = audioContext.currentTime;
-            }
-            audioContext.resume().then(() => {
-                isPlaying1 = true;
-            });
-        }
-    } else if (bufferNumber === 2) {
-        if (!audioBuffer2) {
-            console.warn('Please select Audio 2 file first.');
-            return;
-        }
-        if (isPlaying2) {
-            // Pause audio 2
-            audioContext.suspend().then(() => {
-                isPlaying2 = false;
-                pauseTime2 += audioContext.currentTime - startTime2;
-                rotationAngle2 += (pauseTime2 - rotationStartTime2) * 180; // Update rotation angle
-            });
-        } else {
-            // Resume or play audio 2
-            if (!source2) {
-                source2 = playAudio(audioBuffer2, pauseTime2, gainNode2);
-                rotationStartTime2 = audioContext.currentTime;
-            }
-            audioContext.resume().then(() => {
-                isPlaying2 = true;
-            });
-        }
-    }
-}
-
-
-// Attach event listeners to toggle buttons
-toggleButton1.addEventListener('click', function() {
-    toggleAudio(1);
-});
-
-toggleButton2.addEventListener('click', function() {
-    toggleAudio(2);
-});
-
-/***** END: Trigger audio play on toggle of start/stop button ******/
-
-
-
-
-
-/***** START: Create file inputs as SVG elements ******/
-
-// Create hidden file input elements
-const fileInput1 = document.createElement('input');
-fileInput1.type = 'file';
-fileInput1.style.display = 'none'; // Keep it hidden
-document.body.appendChild(fileInput1);
-
-const fileInput2 = document.createElement('input');
-fileInput2.type = 'file';
-fileInput2.style.display = 'none'; // Keep it hidden
-document.body.appendChild(fileInput2);
-
-// Function to handle file input change
-function handleFileInput(event, bufferNumber) {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        const arrayBuffer = e.target.result;
-
-        if (bufferNumber === 1) {
-            audioContext.decodeAudioData(arrayBuffer, function(buffer) {
-                audioBuffer1 = buffer;
-                console.log(audioBuffer1);
-                console.log('Audio 1 data decoded successfully');
-            }, function(error) {
-                console.error('Error decoding audio data:', error);
-            });
-        } else if (bufferNumber === 2) {
-            audioContext.decodeAudioData(arrayBuffer, function(buffer) {
-                audioBuffer2 = buffer;
-                console.log('Audio 2 data decoded successfully');
-            }, function(error) {
-                console.error('Error decoding audio data:', error);
-            });
-        }
-    };
-    reader.readAsArrayBuffer(file);
-}
-
-// Attach event listeners to the hidden file inputs
-fileInput1.addEventListener('change', function(event) {
-    handleFileInput(event, 1);
-});
-
-fileInput2.addEventListener('change', function(event) {
-    handleFileInput(event, 2);
-});
-
-// Get the <g> elements
-const addButton1 = document.querySelector('.left-table--add');
-const addButton2 = document.querySelector('.right-table--add');
-
-// Add click event listeners to the <g> elements to trigger the hidden file inputs
-addButton1.addEventListener('click', function() {
-    fileInput1.click();
-});
-
-addButton2.addEventListener('click', function() {
-    fileInput2.click();
-});
-
-/***** END: Create file inputs as SVG elements ******/
-
-
 
 
 

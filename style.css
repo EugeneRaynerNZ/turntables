@@ -33,12 +33,12 @@ svg * {
 }
 
 .left-table--add:hover rect, .right-table--add:hover rect {
-    fill: black
+    fill: rgb(43, 43, 43)
 }
 
-.left-table--add:hover path, .right-table--add:hover path {
+/* .left-table--add:hover path, .right-table--add:hover path {
     fill: white
-}
+} */
 
 
 @keyframes rotating {
@@ -65,3 +65,10 @@ svg * {
     animation: rotating 2s linear infinite;
 }
   
+.disabled {
+    pointer-events: none;
+}
+
+.disabled rect {
+    stroke: #EE001C;
+}
