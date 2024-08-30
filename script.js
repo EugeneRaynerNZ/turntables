@@ -1,247 +1,22 @@
-// const knob = document.querySelector("#knob");
-// const knobHandle = document.querySelector("#knob-handle");
-// const leftSide = document.querySelector("#circle-left");
-// const rightSide = document.querySelector("#circle-right");
-// const value = document.querySelector("#frequencyValue");
-// const turntable = document.querySelector("#turntable");
-
-// let isDragging = false;
-// let isDraggingLeft = false; // Track if dragging to the left
-// let isDraggingRight = false; // Track if dragging to the right
-// let startAngle = 0;
-// let currentAngle = 0;
-// let counterClockwiseValue = 1000; // Starts at 1000 for anticlockwise rotation
-// let clockwiseValue = 1000; // Starts at 1000 for clockwise rotation
-// let percentageValue = 0; // Initialize the percentage from -100% to 100%
-// let variableA = 1000; // Variable A mapped from percentage (-100% to 0%)
-// let variableB = 1000; // Variable B mapped from percentage (0% to 100%)
-// let maximumRotation = 140;
-// let extendedValue = 2000;
-
-// let audioPlaying = false;
-
-// // knobHandle.addEventListener("mousedown", startDrag);
-// // document.addEventListener("mousemove", handleDrag);
-// // document.addEventListener("mouseup", stopDrag);
-
-// {/* <audio autoplay="false" src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/858/outfoxing.mp3" crossorigin="anonymous" ></audio> */}
-
-// var leftTableAudio = new Audio("https://www.cineblueone.com/maskWall/audio/skylar.mp3"); //Celine Dion's "Ashes"
-// var rightTableAudio = new Audio("https://s3-us-west-2.amazonaws.com/s.cdpn.io/858/outfoxing.mp3"); //Celine Dion's "Ashes"
-
-// // For cross-browser support
-// const AudioContext = window.AudioContext || window.webkitAudioContext;
-// const audioCtx = new AudioContext();
-
-// // Load some sound
-// const audioElement = document.querySelector("audio");
-// const track = audioCtx.createMediaElementSource(audioElement);
-
-// // Create biquad filter and set initial value
-// const biquadFilter = audioCtx.createBiquadFilter();
-// biquadFilter.type = "lowpass";
-// biquadFilter.frequency.value = extendedValue;
-
-// function main() {
-//   connectPlayButton();
-//   track.connect(biquadFilter).connect(audioCtx.destination);
-// }
-
-// function connectPlayButton() {
-//   const playButton = document.querySelector(".play");
-//   playButton.addEventListener(
-//     "click",
-//     function () {
-//       handlePlayButtonClick(this);
-//     },
-//     false
-//   );
-// }
-
-// function handlePlayButtonClick(button) {
-//   if (audioCtx.state === "suspended") {
-//     audioCtx.resume();
-//   }
-
-//   if (!audioPlaying) {
-//     audioElement.play();
-//     turntable.classList.add("rotating");
-//   } else {
-//     audioElement.pause();
-//     turntable.classList.remove("rotating");
-//   }
-
-//   audioPlaying = !audioPlaying;
-// }
-
-// function startDrag(event) {
-//   isDragging = true;
-//   isDraggingLeft = false; // Reset direction flags
-//   isDraggingRight = false;
-
-//   const rect = knob.getBoundingClientRect();
-//   const centerX = rect.left + rect.width / 2;
-//   const centerY = rect.top + rect.height / 2;
-//   startAngle =
-//     Math.atan2(event.clientY - centerY, event.clientX - centerX) *
-//     (180 / Math.PI);
-//   event.preventDefault(); // Prevent default drag behavior
-// }
-
-// function handleDrag(event) {
-//   if (!isDragging) return;
-
-//   const rect = knob.getBoundingClientRect();
-//   const centerX = rect.left + rect.width / 2;
-//   const centerY = rect.top + rect.height / 2;
-
-//   const newAngle =
-//     Math.atan2(event.clientY - centerY, event.clientX - centerX) *
-//     (180 / Math.PI);
-
-//   let angleDiff = newAngle - startAngle;
-
-//   // Adjust angle difference to handle the rotation correctly
-//   if (angleDiff < -180) angleDiff += 360;
-//   if (angleDiff > 180) angleDiff -= 360;
-
-//   // Determine direction of the drag
-//   if (angleDiff < 0) {
-//     isDraggingLeft = true;
-//     isDraggingRight = false;
-//   } else if (angleDiff > 0) {
-//     isDraggingRight = true;
-//     isDraggingLeft = false;
-//   }
-
-//   currentAngle += angleDiff;
-//   startAngle = newAngle;
-
-//   // Restrict rotation between -110 degrees and +110 degrees
-//   if (currentAngle > maximumRotation) {
-//     currentAngle = maximumRotation;
-//   } else if (currentAngle < -maximumRotation) {
-//     currentAngle = -maximumRotation;
-//   }
-
-//   // Calculate the counterclockwise and clockwise values based on currentAngle
-//   if (isDraggingLeft) {
-//     // Map currentAngle (-110 to 0) to (1000 to 0) for anticlockwise
-//     counterClockwiseValue = Math.round(
-//       1000 - (currentAngle + maximumRotation) * (1000 / maximumRotation)
-//     );
-//   } else if (isDraggingRight) {
-//     // Map currentAngle (0 to 110) to (1000 to 0) for clockwise
-//     clockwiseValue = Math.round(1000 - currentAngle * (1000 / maximumRotation));
-//   }
-
-//   // Calculate variables A and B based on the percentage value
-//   if (percentageValue < 0) {
-//     // Map percentage (-100% to 0%) to variableA (1000 to 0)
-//     variableA = Math.round(1000 + percentageValue * (180 / 100)); // percentageValue is negative, so it adds up to 1000
-//     variableB = 1000; // Reset variableB to 0
-//   } else {
-//     // Map percentage (0% to 100%) to variableB (1000 to 0)
-//     variableB = Math.round(1000 - percentageValue * (180 / 100));
-//     variableA = 1000; // Reset variableA to 0
-//   }
-
-//   percentageValue = Math.floor((currentAngle / maximumRotation) * 100);
-
-//   // Calculate the extended value based on the currentAngle
-//   filtervalue =
-//     ((currentAngle + maximumRotation) / (2 * maximumRotation)) * 2000;
-//   biquadFilter.frequency.value = filtervalue;
-
-//   // Update biquad filter frequency value
-
-//   // Rotate the entire knob container
-//   knob.style.transform = `rotate(${currentAngle}deg)`;
-//   leftSide.style.strokeDashoffset = variableB;
-//   rightSide.style.strokeDashoffset = variableA;
-//   value.innerHTML = `${percentageValue}%`;
-
-//   console.log(isDragging);
-// }
-
-// function stopDrag() {
-//   isDragging = false;
-//   isDraggingLeft = false;
-//   isDraggingRight = false;
-// }
-
-// main();
-
-// const slider = document.getElementById("volume-left-slider");
-// const sliderHandle = document.getElementById("sliderHandle");
-// const sliderTrack = document.getElementById("sliderTrack");
-// let sliderIsDragging = false;
-
-// sliderHandle.addEventListener("mousedown", (e) => {
-//   sliderIsDragging = true;
-// });
-
-// slider.addEventListener("mousemove", (e) => {
-//   if (!sliderIsDragging) return;
-
-//   const rect = slider.getBoundingClientRect();
-//   let newX = e.clientX - rect.left - sliderHandle.width.baseVal.value / 2;
-//   newX = Math.max(0, Math.min(newX, 285 - sliderHandle.width.baseVal.value)); // Ensure the handle stays within bounds
-
-//   sliderHandle.setAttribute("x", newX);
-// });
-
-// slider.addEventListener("mouseup", () => {
-//   sliderIsDragging = false;
-// });
-
-// slider.addEventListener("mouseleave", () => {
-//   sliderIsDragging = false;
-// });
-
-const volumeLeft = document.querySelector(".volume-left-slider");
-const volumeLeftTrack = document.querySelector("#VolumeLeftTrack");
-const volumeLeftHandle = document.querySelector("#VolumeLeftHandle");
-
-// const svgHeight = volumeLeft.clientHeight;
-// const trackHeight =
-//   parseFloat(volumeLeftTrack.getAttribute("y2")) -
-//   parseFloat(volumeLeftTrack.getAttribute("y1"));
-
-// let isDraggingVolumeLeft = false;
-
-// function updateHandlePosition(y) {
-//   // Limit handle position to within the track
-//   const handleY = Math.max(2, Math.min(y, svgHeight - 20)); // 20 is handle height
-//   volumeLeftHandle.setAttribute("y", handleY);
-
-//   // Calculate the slider value
-//   const value = ((svgHeight - handleY) / trackHeight) * 100;
-//   console.log("Slider Value:", Math.round(value));
-// }
-
-// volumeLeft.addEventListener("mousedown", (e) => {
-//   isDraggingVolumeLeft = true;
-//   updateHandlePosition(e.clientY - volumeLeft.getBoundingClientRect().top);
-// });
-
-// volumeLeft.addEventListener("mousemove", (e) => {
-//   if (isDraggingVolumeLeft) {
-//     updateHandlePosition(e.clientY - volumeLeft.getBoundingClientRect().top);
-//   }
-// });
-
-// volumeLeft.addEventListener("mouseup", () => {
-//   isDraggingVolumeLeft = false;
-// });
-
-// volumeLeft.addEventListener("mouseleave", () => {
-//   isDraggingVolumeLeft = false;
-// });
-
 // Create separate AudioContext instances for each audio
 const audioContext1 = new (window.AudioContext || window.webkitAudioContext)();
 const audioContext2 = new (window.AudioContext || window.webkitAudioContext)();
+
+// Initialize track1GainValue
+let track1GainValue = 1; // Default value for track1GainValue
+let track2GainValue = 1; // Default value for track1GainValue
+
+// Create a GainNode
+const gainNode1 = audioContext1.createGain();
+const gainNode2 = audioContext2.createGain();
+
+// Connect the GainNode to the destination (speakers)
+gainNode1.connect(audioContext1.destination);
+gainNode2.connect(audioContext2.destination);
+
+// Set the initial volume (0.5 is 50% volume, 1 is 100% volume)
+gainNode1.gain.value = track1GainValue; // Use the initialized value
+gainNode2.gain.value = track2GainValue;
 
 // Elements
 const audioFileInput1 = document.getElementById('audioFileInput1');
@@ -269,6 +44,114 @@ let rotationStartTime2 = 0;
 let rotationAngle1 = 0;
 let rotationAngle2 = 0;
 
+// Define track boundaries for the new slider
+const trackRight = document.querySelector('#VolumeRightTrack');
+const handleRight = document.querySelector('#VolumeRightHandle');
+
+const trackYRight1 = parseFloat(trackRight.getAttribute('y1')); // Top
+const trackYRight2 = parseFloat(trackRight.getAttribute('y2')); // Bottom
+const handleHeightRight = parseFloat(handleRight.getAttribute('height'));
+
+// Select elements
+const track = document.querySelector('#VolumeLeftTrack');
+const handle = document.querySelector('#VolumeLeftHandle');
+
+// Define track boundaries
+const trackY1 = parseFloat(track.getAttribute('y1')); // Top
+const trackY2 = parseFloat(track.getAttribute('y2')); // Bottom
+const handleHeight = parseFloat(handle.getAttribute('height'));
+
+// Calculate the initial offset of the handle relative to the mouse position
+let initialMouseY = 0;
+let initialHandleY = 0;
+
+// Helper function to constrain values
+const clamp = (value, min, max) => Math.max(min, Math.min(value, max));
+
+// Function to update handle and output value
+const updateHandleLeft = (y) => {
+  if (!isNaN(y)) {
+    // Constrain handle to the track boundaries
+    const constrainedY = clamp(y, trackY2 - handleHeight, trackY1);
+    handle.setAttribute('y', constrainedY);
+
+    // Calculate and output the reversed normalized value (1 - normalizedValue)
+    const normalizedValue = (constrainedY - (trackY2 - handleHeight)) / (trackY1 - (trackY2 - handleHeight));
+    track1GainValue = 1 - normalizedValue;
+
+    // Update the gain value for gainNode1
+    gainNode1.gain.value = track1GainValue;
+  }
+};
+
+// Function to update the handle and output value for the new slider
+const updateHandleRight = (y) => {
+    if (!isNaN(y)) {
+      // Constrain handle to the track boundaries
+      const constrainedY = clamp(y, trackYRight2 - handleHeightRight, trackYRight1);
+      handleRight.setAttribute('y', constrainedY);
+  
+      // Calculate and output the reversed normalized value (1 - normalizedValue)
+      const normalizedValue = (constrainedY - (trackYRight2 - handleHeightRight)) / (trackYRight1 - (trackYRight2 - handleHeightRight));
+      track2GainValue = 1 - normalizedValue;
+      
+      // Update the gain value of the second audio context
+      gainNode2.gain.value = track2GainValue;
+    }
+  };
+
+// Initialize dragging
+let isDraggingLeftVolume = false;
+
+handle.addEventListener('mousedown', (e) => {
+    isDraggingLeftVolume = true;
+  initialMouseY = e.clientY;
+  initialHandleY = parseFloat(handle.getAttribute('y'));
+  e.preventDefault(); // Prevent default behavior for better dragging experience
+});
+
+document.addEventListener('mousemove', (e) => {
+  if (isDraggingLeftVolume) {
+    // Calculate the new handle position based on mouse movement
+    const mouseY = e.clientY;
+    const deltaY = mouseY - initialMouseY;
+    const newHandleY = initialHandleY + deltaY;
+
+    // Update handle position and output value
+    updateHandleLeft(newHandleY);
+  }
+});
+
+document.addEventListener('mouseup', () => {
+    isDraggingLeftVolume = false;
+});
+
+// Initialize dragging for the new slider
+let isDraggingRightVolume = false;
+
+handleRight.addEventListener('mousedown', (e) => {
+    isDraggingRightVolume = true;
+  initialMouseY = e.clientY;
+  initialHandleY = parseFloat(handleRight.getAttribute('y'));
+  e.preventDefault(); // Prevent default behavior for better dragging experience
+});
+
+document.addEventListener('mousemove', (e) => {
+  if (isDraggingRightVolume) {
+    // Calculate the new handle position based on mouse movement
+    const mouseY = e.clientY;
+    const deltaY = mouseY - initialMouseY;
+    const newHandleY = initialHandleY + deltaY;
+
+    // Update handle position and output value
+    updateHandleRight(newHandleY);
+  }
+});
+
+document.addEventListener('mouseup', () => {
+    isDraggingRightVolume = false;
+});
+
 // Function to handle file input change
 function handleFileInput(event, bufferNumber) {
     const file = event.target.files[0];
@@ -281,6 +164,7 @@ function handleFileInput(event, bufferNumber) {
         if (bufferNumber === 1) {
             audioContext1.decodeAudioData(arrayBuffer, function(buffer) {
                 audioBuffer1 = buffer;
+                console.log(audioBuffer1);
                 console.log('Audio 1 data decoded successfully');
             }, function(error) {
                 console.error('Error decoding audio data:', error);
@@ -307,10 +191,10 @@ audioFileInput2.addEventListener('change', function(event) {
 });
 
 // Function to create and play audio source
-function playAudio(audioContext, buffer, pauseTime) {
+function playAudio(audioContext, buffer, pauseTime, gainNode) {
     const source = audioContext.createBufferSource();
     source.buffer = buffer;
-    source.connect(audioContext.destination);
+    source.connect(gainNode).connect(audioContext.destination);
     source.start(0, pauseTime); // Start playing from the paused time
     return source;
 }
@@ -337,7 +221,7 @@ function toggleAudio(bufferNumber) {
         } else {
             // Resume or play audio 1
             if (!source1) {
-                source1 = playAudio(audioContext1, audioBuffer1, pauseTime1);
+                source1 = playAudio(audioContext1, audioBuffer1, pauseTime1, gainNode1);
                 rotationStartTime1 = audioContext1.currentTime;
             }
             audioContext1.resume().then(() => {
@@ -359,7 +243,7 @@ function toggleAudio(bufferNumber) {
         } else {
             // Resume or play audio 2
             if (!source2) {
-                source2 = playAudio(audioContext2, audioBuffer2, pauseTime2);
+                source2 = playAudio(audioContext2, audioBuffer2, pauseTime2, gainNode2);
                 rotationStartTime2 = audioContext2.currentTime;
             }
             audioContext2.resume().then(() => {
@@ -401,6 +285,3 @@ function animateDisks() {
 
 // Start animation loop
 animateDisks();
-
-
-

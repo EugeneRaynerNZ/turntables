@@ -11,7 +11,7 @@ svg * {
     transform-box: fill-box;
 } */
 
-#ToggleButton1, #ToggleButton2 {
+#ToggleButton1, #ToggleButton2, #VolumeLeftHandle, #VolumeRightHandle {
     cursor: pointer;
 }
 
