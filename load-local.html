@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Load Local Audio</title>
+</head>
+<body>
+    <!-- Step 2: Add a file input to choose an audio file -->
+    <input type="file" id="audioFileInput" accept="audio/*">
+    <button id="playButton">Play Audio</button>
+
+    <script>
+        // Step 1: Create an AudioContext
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+        // Elements
+        const audioFileInput = document.getElementById('audioFileInput');
+        const playButton = document.getElementById('playButton');
+
+        // Store the audio buffer globally
+        let audioBuffer = null;
+
+        // Handle file input change event
+        audioFileInput.addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            // Step 3: Read the file as an ArrayBuffer
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const arrayBuffer = e.target.result;
+                
+                // Decode audio data
+                audioContext.decodeAudioData(arrayBuffer, function(buffer) {
+                    audioBuffer = buffer;
+                    console.log('Audio data decoded successfully');
+                }, function(error) {
+                    console.error('Error decoding audio data:', error);
+                });
+            };
+            reader.readAsArrayBuffer(file);
+        });
+
+        // Handle play button click event
+        playButton.addEventListener('click', function() {
+            if (!audioBuffer) {
+                console.warn('Please select an audio file first.');
+                return;
+            }
+
+            // Step 4: Create a buffer source and play the audio
+            const source = audioContext.createBufferSource();
+            source.buffer = audioBuffer;
+            source.connect(audioContext.destination);
+            source.start();
+        });
+    </script>
+</body>
+</html>

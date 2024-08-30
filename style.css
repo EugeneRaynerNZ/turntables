@@ -1,0 +1,55 @@
+/* svg {
+    transform-origin: center center;
+}
+
+svg * { 
+    transform-box: fill-box;
+} */
+
+/* .rotating {
+    transform-origin: center center;
+    transform-box: fill-box;
+} */
+
+#ToggleButton1, #ToggleButton2 {
+    cursor: pointer;
+}
+
+#ToggleButton1:hover rect, #ToggleButton2:hover rect {
+    fill: #4BF1A5
+}
+
+#ToggleButton1:hover path, #ToggleButton2:hover path {
+    fill: black
+}
+
+.left-table--disk, .right-table--disk {
+    transform-origin: center center;
+    transform-box: fill-box;
+}
+
+
+@keyframes rotating {
+    from {
+        -ms-transform: rotate(0deg);
+        -moz-transform: rotate(0deg);
+        -webkit-transform: rotate(0deg);
+        -o-transform: rotate(0deg);
+        transform: rotate(0deg);
+    }
+    to {
+        -ms-transform: rotate(360deg);
+        -moz-transform: rotate(360deg);
+        -webkit-transform: rotate(360deg);
+        -o-transform: rotate(360deg);
+        transform: rotate(360deg);
+    }
+}
+.rotating {
+    -webkit-animation: rotating 2s linear infinite;
+    -moz-animation: rotating 2s linear infinite;
+    -ms-animation: rotating 2s linear infinite;
+    -o-animation: rotating 2s linear infinite;
+    animation: rotating 2s linear infinite;
+}
+  
