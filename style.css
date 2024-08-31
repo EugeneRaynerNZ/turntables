@@ -17,6 +17,24 @@ html {
     font-family: 'Inter', sans-serif;
 }
 
+svg text {
+    font-size: 11px;
+}
+
+.turntables--container {
+    position: relative;
+}
+.analyzer {
+    margin-top: 20px;
+    position: absolute;
+    top: 0;
+    left: 464px;   
+}
+
+#analyzerCanvas {
+    border: 1px solid #333;
+}
+
 .left-table--start, .right-table--start, #VolumeLeftHandle, #VolumeRightHandle, .left-table--add, .right-table--add {
     cursor: pointer;
 }

@@ -360,7 +360,6 @@ function fileInformation(file, playerNumber) {
     const fileType = file.type;
 
     const infoTexts = [
-        `Player ${playerNumber}`,
         `File: ${fileName}`,
         `Size: ${fileSize} MB`,
         `Type: ${fileType}`
@@ -372,7 +371,7 @@ function fileInformation(file, playerNumber) {
     infoTexts.forEach((text, index) => {
         const textElement = document.createElementNS("http://www.w3.org/2000/svg", "text");
         textElement.setAttribute('x', '10');
-        textElement.setAttribute('y', (index * 20 + 20).toString());
+        textElement.setAttribute('y', (index * 20 + 10).toString());
         textElement.setAttribute('fill', 'white');
         textElement.setAttribute('font-size', '14');
         textElement.setAttribute('transform', `translate(${translateX}, 441)`);
@@ -420,11 +419,13 @@ function handleFileInput(event, bufferNumber) {
 // Create hidden file input elements
 const fileInput1 = document.createElement('input');
 fileInput1.type = 'file';
+fileInput1.accept = 'audio/*';
 fileInput1.style.display = 'none'; // Keep it hidden
 document.body.appendChild(fileInput1);
 
 const fileInput2 = document.createElement('input');
 fileInput2.type = 'file';
+fileInput2.accept = 'audio/*';
 fileInput2.style.display = 'none'; // Keep it hidden
 document.body.appendChild(fileInput2);
 
@@ -698,3 +699,261 @@ document.addEventListener('mouseup', () => {
 const clamp = (value, min, max) => Math.max(min, Math.min(value, max));
 
 /***** END: Helper Functions ******/
+
+// ... existing code ...
+
+// Create analyzer node
+const analyser = audioContext.createAnalyser();
+analyser.fftSize = 256;
+const bufferLength = analyser.frequencyBinCount;
+const dataArray = new Uint8Array(bufferLength);
+
+// Connect the analyzer to the master GainNode
+masterGainNode.connect(analyser);
+
+// Canvas setup
+const canvas = document.getElementById('analyzerCanvas');
+const canvasCtx = canvas.getContext('2d');
+canvas.width = 200;
+canvas.height = 100;
+
+function draw() {
+    requestAnimationFrame(draw);
+
+    analyser.getByteFrequencyData(dataArray);
+
+    canvasCtx.fillStyle = 'rgb(0, 0, 0)';
+    canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+
+    const barWidth = (canvas.width / bufferLength) * 2.5;
+    let barHeight;
+    let x = 0;
+
+    for(let i = 0; i < bufferLength; i++) {
+        barHeight = dataArray[i] / 2;
+
+        canvasCtx.fillStyle = `rgb(${barHeight + 100},50,50)`;
+        canvasCtx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
+
+        x += barWidth + 1;
+    }
+}
+
+// Start drawing
+draw();
+
+
+
+// ... existing code ...
+
+/***** START: Piano Implementation ******/
+
+// Define the frequencies for an octave (C3 to B3)
+const noteFrequencies = {
+    'C3': 130.81,
+    'C#3': 138.59,
+    'D3': 146.83,
+    'D#3': 155.56,
+    'E3': 164.81,
+    'F3': 174.61,
+    'F#3': 185.00,
+    'G3': 196.00,
+    'G#3': 207.65,
+    'A3': 220.00,
+    'A#3': 233.08,
+    'B3': 246.94
+};
+
+// Map keyboard keys to notes
+const keyboardMap = {
+    'a': 'C3',
+    'w': 'C#3',
+    's': 'D3',
+    'e': 'D#3',
+    'd': 'E3',
+    'f': 'F3',
+    't': 'F#3',
+    'g': 'G3',
+    'y': 'G#3',
+    'h': 'A3',
+    'u': 'A#3',
+    'j': 'B3'
+};
+
+// Create a gain node for the piano
+const pianoGainNode = audioContext.createGain();
+pianoGainNode.connect(masterGainNode);
+
+// Object to store active oscillators
+const activeOscillators = {};
+
+// Function to play a note
+function playNote(frequency) {
+    const oscillator = audioContext.createOscillator();
+    oscillator.type = 'sine'; // You can experiment with 'square', 'sawtooth', or 'triangle'
+    oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
+    
+    oscillator.connect(pianoGainNode);
+    oscillator.start();
+    return oscillator;
+}
+
+// Function to stop a note
+function stopNote(oscillator) {
+    oscillator.stop();
+    oscillator.disconnect();
+}
+
+// Create piano keys
+function createPianoKeys() {
+    const pianoContainer = document.createElement('div');
+    pianoContainer.style.display = 'flex';
+    pianoContainer.style.justifyContent = 'center';
+    pianoContainer.style.marginTop = '20px';
+
+    Object.entries(noteFrequencies).forEach(([note, frequency]) => {
+        const key = document.createElement('div');
+        key.textContent = note;
+        key.style.width = '40px';
+        key.style.height = '100px';
+        key.style.backgroundColor = note.includes('#') ? 'black' : 'white';
+        key.style.color = note.includes('#') ? 'white' : 'black';
+        key.style.border = '1px solid black';
+        key.style.display = 'flex';
+        key.style.alignItems = 'flex-end';
+        key.style.justifyContent = 'center';
+        key.style.padding = '5px';
+        key.style.cursor = 'pointer';
+        key.style.userSelect = 'none';
+
+        key.addEventListener('mousedown', () => {
+            if (!activeOscillators[note]) {
+                activeOscillators[note] = playNote(frequency);
+            }
+        });
+
+        key.addEventListener('mouseup', () => {
+            if (activeOscillators[note]) {
+                stopNote(activeOscillators[note]);
+                delete activeOscillators[note];
+            }
+        });
+
+        key.addEventListener('mouseleave', () => {
+            if (activeOscillators[note]) {
+                stopNote(activeOscillators[note]);
+                delete activeOscillators[note];
+            }
+        });
+
+        // Add keyboard key label
+        const keyboardKey = Object.keys(keyboardMap).find(k => keyboardMap[k] === note);
+        if (keyboardKey) {
+            const keyLabel = document.createElement('div');
+            keyLabel.textContent = keyboardKey.toUpperCase();
+            keyLabel.style.position = 'absolute';
+            keyLabel.style.top = '5px';
+            keyLabel.style.left = '5px';
+            keyLabel.style.fontSize = '12px';
+            key.style.position = 'relative';
+            key.appendChild(keyLabel);
+        }
+
+        pianoContainer.appendChild(key);
+    });
+
+    document.body.appendChild(pianoContainer);
+}
+
+// Call this function to create the piano keys
+createPianoKeys();
+
+// Add keyboard event listeners
+document.addEventListener('keydown', (event) => {
+    const key = event.key.toLowerCase();
+    if (keyboardMap.hasOwnProperty(key) && !activeOscillators[keyboardMap[key]]) {
+        const note = keyboardMap[key];
+        const frequency = noteFrequencies[note];
+        activeOscillators[note] = playNote(frequency);
+    }
+});
+
+document.addEventListener('keyup', (event) => {
+    const key = event.key.toLowerCase();
+    if (keyboardMap.hasOwnProperty(key)) {
+        const note = keyboardMap[key];
+        if (activeOscillators[note]) {
+            stopNote(activeOscillators[note]);
+            delete activeOscillators[note];
+        }
+    }
+});
+
+/***** END: Piano Implementation ******/
+
+// ... rest of your existing code ...
+
+
+
+
+
+// ... existing code ...
+
+/***** START: Create WaveShaper ******/
+
+// // Create WaveShaper nodes for each track
+// const waveShaperLeft = audioContext.createWaveShaper();
+// const waveShaperRight = audioContext.createWaveShaper();
+
+// // Function to create distortion curve
+// function makeDistortionCurve(amount) {
+//     const k = typeof amount === 'number' ? amount : 50;
+//     const n_samples = 44100;
+//     const curve = new Float32Array(n_samples);
+//     const deg = Math.PI / 180;
+
+//     for (let i = 0; i < n_samples; ++i) {
+//         const x = i * 2 / n_samples - 1;
+//         curve[i] = (3 + k) * x * 20 * deg / (Math.PI + k * Math.abs(x));
+//     }
+//     return curve;
+// }
+
+// // Set initial distortion
+// waveShaperLeft.curve = makeDistortionCurve(0); // No distortion initially
+// waveShaperRight.curve = makeDistortionCurve(0); // No distortion initially
+
+// // Connect waveshapers in the audio chain
+// leftTrackFilter.disconnect(masterGainNode);
+// rightTrackFilter.disconnect(masterGainNode);
+
+// leftTrackFilter.connect(waveShaperLeft);
+// rightTrackFilter.connect(waveShaperRight);
+
+// waveShaperLeft.connect(masterGainNode);
+// waveShaperRight.connect(masterGainNode);
+
+// /***** END: Create WaveShaper ******/
+
+// // ... existing code ...
+
+// /***** START: Distortion Control ******/
+
+// // Get the distortion control elements
+// const distortionLeftControl = document.querySelector('#DistortionLeftControl');
+// const distortionRightControl = document.querySelector('#DistortionRightControl');
+
+// // Function to update distortion
+// function updateDistortion(event, side) {
+//     const distortionAmount = parseFloat(event.target.value);
+//     const waveShaper = side === 'left' ? waveShaperLeft : waveShaperRight;
+//     waveShaper.curve = makeDistortionCurve(distortionAmount);
+// }
+
+// // Add event listeners for distortion controls
+// distortionLeftControl.addEventListener('input', (e) => updateDistortion(e, 'left'));
+// distortionRightControl.addEventListener('input', (e) => updateDistortion(e, 'right'));
+
+// /***** END: Distortion Control ******/
+
+// // ... rest of your existing code ...
