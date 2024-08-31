@@ -49,6 +49,8 @@ rightTrackFilter.connect(masterGainNode);
 
 /***** END: Create Filters for Each Track ******/
 
+
+
 /***** START: Filter Handle Controls for Left Side ******/
 
 // SVG Elements
@@ -278,6 +280,16 @@ class CustomAudioPlayer {
         }
         return this.pauseTime;
     }
+
+    setCurrentTime(time) {
+        if (this.isPlaying) {
+            this.pause();
+            this.pauseTime = time;
+            this.play();
+        } else {
+            this.pauseTime = time;
+        }
+    }
 }
 
 /***** END: Custom Audio Player Class ******/
@@ -288,7 +300,7 @@ class CustomAudioPlayer {
 
 // Function to toggle audio play/pause
 function toggleAudio(playerNumber) {
-    let player, rotationStartTimeVar, rotationAngleVar;
+    let player, toggleButton;
     
     if (playerNumber === 1) {
         if (!audioBuffer1) {
@@ -299,8 +311,7 @@ function toggleAudio(playerNumber) {
             player1 = new CustomAudioPlayer(audioContext, audioBuffer1, gainNode1);
         }
         player = player1;
-        rotationStartTimeVar = 'rotationStartTime1';
-        rotationAngleVar = 'rotationAngle1';
+        toggleButton = toggleButton1;
     } else if (playerNumber === 2) {
         if (!audioBuffer2) {
             console.warn('Please select Audio 2 file first.');
@@ -310,16 +321,15 @@ function toggleAudio(playerNumber) {
             player2 = new CustomAudioPlayer(audioContext, audioBuffer2, gainNode2);
         }
         player = player2;
-        rotationStartTimeVar = 'rotationStartTime2';
-        rotationAngleVar = 'rotationAngle2';
+        toggleButton = toggleButton2;
     }
 
     if (player.isPlaying) {
         player.pause();
-        window[rotationAngleVar] += (player.getCurrentTime() - window[rotationStartTimeVar]) * 180;
+        toggleButton.classList.remove('playing');
     } else {
         player.play();
-        window[rotationStartTimeVar] = audioContext.currentTime;
+        toggleButton.classList.add('playing');
     }
 }
 
@@ -334,26 +344,51 @@ toggleButton2.addEventListener('click', function() {
 
 /***** END: Trigger audio play on toggle of start/stop button ******/
 
+const leftInfoContainer = document.querySelector('.left-table--information');
+const rightInfoContainer = document.querySelector('.right-table--information');
 
+function fileInformation(file, playerNumber) {
+    // Determine which container to use based on the player number
+    const infoContainer = playerNumber === 1 ? leftInfoContainer : rightInfoContainer;
 
+    // Remove any existing file info for this player
+    const existingInfo = infoContainer.querySelectorAll('text');
+    existingInfo.forEach(el => el.remove());
 
-/***** START: Create file inputs as SVG elements ******/
+    const fileName = file.name;
+    const fileSize = (file.size / 1024 / 1024).toFixed(2); // Convert to MB and round to 2 decimal places
+    const fileType = file.type;
 
-// Create hidden file input elements
-const fileInput1 = document.createElement('input');
-fileInput1.type = 'file';
-fileInput1.style.display = 'none'; // Keep it hidden
-document.body.appendChild(fileInput1);
+    const infoTexts = [
+        `Player ${playerNumber}`,
+        `File: ${fileName}`,
+        `Size: ${fileSize} MB`,
+        `Type: ${fileType}`
+    ];
 
-const fileInput2 = document.createElement('input');
-fileInput2.type = 'file';
-fileInput2.style.display = 'none'; // Keep it hidden
-document.body.appendChild(fileInput2);
+    // Set the correct translation based on the player number
+    const translateX = playerNumber === 1 ? 90 : 760;
 
-// Function to handle file input change
+    infoTexts.forEach((text, index) => {
+        const textElement = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        textElement.setAttribute('x', '10');
+        textElement.setAttribute('y', (index * 20 + 20).toString());
+        textElement.setAttribute('fill', 'white');
+        textElement.setAttribute('font-size', '14');
+        textElement.setAttribute('transform', `translate(${translateX}, 441)`);
+        textElement.textContent = text;
+        infoContainer.appendChild(textElement);
+    });
+}
+
+// ... rest of your code ...
+
+// Update the handleFileInput function
 function handleFileInput(event, bufferNumber) {
     const file = event.target.files[0];
     if (!file) return;
+
+    fileInformation(file, bufferNumber);
 
     const reader = new FileReader();
     reader.onload = function(e) {
@@ -362,10 +397,8 @@ function handleFileInput(event, bufferNumber) {
         if (bufferNumber === 1) {
             audioContext.decodeAudioData(arrayBuffer, function(buffer) {
                 audioBuffer1 = buffer;
-                console.log(audioBuffer1);
                 console.log('Audio 1 data decoded successfully');
                 toggleButton1.classList.remove('disabled');
-                
             }, function(error) {
                 console.error('Error decoding audio data:', error);
             });
@@ -381,6 +414,19 @@ function handleFileInput(event, bufferNumber) {
     };
     reader.readAsArrayBuffer(file);
 }
+
+/***** START: Create file inputs as SVG elements ******/
+
+// Create hidden file input elements
+const fileInput1 = document.createElement('input');
+fileInput1.type = 'file';
+fileInput1.style.display = 'none'; // Keep it hidden
+document.body.appendChild(fileInput1);
+
+const fileInput2 = document.createElement('input');
+fileInput2.type = 'file';
+fileInput2.style.display = 'none'; // Keep it hidden
+document.body.appendChild(fileInput2);
 
 // Attach event listeners to the hidden file inputs
 fileInput1.addEventListener('change', function(event) {
@@ -527,34 +573,119 @@ document.addEventListener('mouseup', onMouseUp);
 
 
 
-/***** Start: Animate the disks on play ******/
+/***** Start: Animate both disks with reverse functionality ******/
 
 // Function to update disk rotation
 function updateDiskRotation(disk, angle) {
     disk.style.transform = `rotate(${angle}deg)`;
 }
 
-// Rotate the disks continuously
+// Variables to track dragging state for both disks
+let diskDraggingLeft = false;
+let diskDraggingRight = false;
+let lastAngleLeft = 0;
+let lastAngleRight = 0;
+let currentDiskAngleLeft = 0;
+let currentDiskAngleRight = 0;
+let reverseSpeed = 1; // Adjust this to change the reverse speed
+
+// Function to calculate angle from mouse position
+function calculateAngle(event, disk) {
+    const rect = disk.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    return Math.atan2(event.clientY - centerY, event.clientX - centerX);
+}
+
+// Function to handle disk dragging
+function handleDiskDrag(event) {
+    if (diskDraggingLeft) {
+        handleSingleDiskDrag(event, leftDisk, player1, 'left');
+    } else if (diskDraggingRight) {
+        handleSingleDiskDrag(event, rightDisk, player2, 'right');
+    }
+}
+
+function handleSingleDiskDrag(event, disk, player, side) {
+    const newAngle = calculateAngle(event, disk);
+    let lastAngle = side === 'left' ? lastAngleLeft : lastAngleRight;
+    let angleDiff = newAngle - lastAngle;
+
+    // Normalize angle difference
+    if (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
+    if (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
+
+    // Update current angle
+    if (side === 'left') {
+        currentDiskAngleLeft += angleDiff;
+        lastAngleLeft = newAngle;
+    } else {
+        currentDiskAngleRight += angleDiff;
+        lastAngleRight = newAngle;
+    }
+
+    // Update disk rotation
+    updateDiskRotation(disk, (side === 'left' ? currentDiskAngleLeft : currentDiskAngleRight) * (180 / Math.PI));
+
+    // Reverse audio if rotating anti-clockwise
+    if (angleDiff < 0 && player) {
+        const currentTime = player.getCurrentTime();
+        const newTime = currentTime - (Math.abs(angleDiff) / Math.PI) * reverseSpeed;
+        player.setCurrentTime(Math.max(0, newTime));
+    }
+}
+
+// Rotate the disks continuously when playing forward
 function animateDisks() {
-    if (player1 && player1.isPlaying) {
-        const elapsedTime1 = player1.getCurrentTime();
-        rotationAngle1 = (elapsedTime1 * 180) % 360; // 180 degrees per second, reset at 360
-        updateDiskRotation(leftDisk, rotationAngle1);
+    if (player1 && player1.isPlaying && !diskDraggingLeft) {
+        currentDiskAngleLeft = (player1.getCurrentTime() * Math.PI) % (2 * Math.PI);
+        updateDiskRotation(leftDisk, currentDiskAngleLeft * (180 / Math.PI));
     }
-
-    if (player2 && player2.isPlaying) {
-        const elapsedTime2 = player2.getCurrentTime();
-        rotationAngle2 = (elapsedTime2 * 180) % 360; // 180 degrees per second, reset at 360
-        updateDiskRotation(rightDisk, rotationAngle2);
+    if (player2 && player2.isPlaying && !diskDraggingRight) {
+        currentDiskAngleRight = (player2.getCurrentTime() * Math.PI) % (2 * Math.PI);
+        updateDiskRotation(rightDisk, currentDiskAngleRight * (180 / Math.PI));
     }
-
     requestAnimationFrame(animateDisks);
 }
 
 // Start animation loop
 animateDisks();
 
-/***** END: Animate the disks on play ******/
+// Event listeners for disk dragging
+leftDisk.addEventListener('mousedown', (e) => {
+    diskDraggingLeft = true;
+    lastAngleLeft = calculateAngle(e, leftDisk);
+    if (player1 && player1.isPlaying) {
+        player1.pause();
+    }
+});
+
+rightDisk.addEventListener('mousedown', (e) => {
+    diskDraggingRight = true;
+    lastAngleRight = calculateAngle(e, rightDisk);
+    if (player2 && player2.isPlaying) {
+        player2.pause();
+    }
+});
+
+document.addEventListener('mousemove', handleDiskDrag);
+
+document.addEventListener('mouseup', () => {
+    if (diskDraggingLeft) {
+        diskDraggingLeft = false;
+        if (player1 && !player1.isPlaying && toggleButton1.classList.contains('playing')) {
+            player1.play();
+        }
+    }
+    if (diskDraggingRight) {
+        diskDraggingRight = false;
+        if (player2 && !player2.isPlaying && toggleButton2.classList.contains('playing')) {
+            player2.play();
+        }
+    }
+});
+
+/***** END: Animate both disks with reverse functionality ******/
 
 
 

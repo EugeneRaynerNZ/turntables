@@ -11,6 +11,12 @@ svg * {
     transform-box: fill-box;
 } */
 
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
+
+html {
+    font-family: 'Inter', sans-serif;
+}
+
 .left-table--start, .right-table--start, #VolumeLeftHandle, #VolumeRightHandle, .left-table--add, .right-table--add {
     cursor: pointer;
 }
@@ -30,6 +36,7 @@ svg * {
 .left-table--disk, .right-table--disk {
     transform-origin: center center;
     transform-box: fill-box;
+    cursor: pointer;
 }
 
 .left-table--add:hover rect, .right-table--add:hover rect {
