@@ -40,9 +40,10 @@ svg * {
     fill: white
 } */
 
-.lowpass-left, .lowpass-right, #LowPassLeftHandle, #LowPassRightHandle {
+.lowpass-left, .lowpass-right {
     transform-origin: center center;
     transform-box: fill-box;
+    cursor: pointer;
 }
 
 

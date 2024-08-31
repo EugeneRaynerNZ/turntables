@@ -219,14 +219,8 @@ let audioBuffer1 = null;
 let audioBuffer2 = null;
 
 // State management
-let source1 = null;
-let source2 = null;
-let startTime1 = 0;
-let startTime2 = 0;
-let pauseTime1 = 0;
-let pauseTime2 = 0;
-let isPlaying1 = false;
-let isPlaying2 = false;
+let player1 = null;
+let player2 = null;
 let rotationStartTime1 = 0;
 let rotationStartTime2 = 0;
 let rotationAngle1 = 0;
@@ -236,75 +230,96 @@ let rotationAngle2 = 0;
 
 
 
-/***** START: Function to play the audio ******/
+/***** START: Custom Audio Player Class ******/
 
-// Function to create and play audio source
-function playAudio(buffer, pauseTime, gainNode) {
-    const source = audioContext.createBufferSource();
-    source.buffer = buffer;
-    source.connect(gainNode);
-    source.start(0, pauseTime); // Start playing from the paused time
-    return source;
-}
+class CustomAudioPlayer {
+    constructor(audioContext, buffer, gainNode) {
+        this.audioContext = audioContext;
+        this.buffer = buffer;
+        this.gainNode = gainNode;
+        this.isPlaying = false;
+        this.startTime = 0;
+        this.pauseTime = 0;
+        this.source = null;
+    }
 
-/***** END: Function to play the audio ******/
+    play() {
+        if (this.isPlaying) return;
+        
+        this.source = this.audioContext.createBufferSource();
+        this.source.buffer = this.buffer;
+        this.source.connect(this.gainNode);
+        
+        const offset = this.pauseTime;
+        this.source.start(0, offset);
+        this.startTime = this.audioContext.currentTime - offset;
+        this.isPlaying = true;
 
+        this.source.onended = () => {
+            if (this.isPlaying) {
+                this.pause();
+                this.pauseTime = 0;
+            }
+        };
+    }
 
+    pause() {
+        if (!this.isPlaying) return;
+        
+        const elapsed = this.audioContext.currentTime - this.startTime;
+        this.pauseTime = elapsed;
+        this.source.stop();
+        this.isPlaying = false;
+    }
 
-// Function to stop and disconnect audio sources
-function stopAudioSource(source, bufferNumber) {
-    if (source) {
-        source.stop();
-        source.disconnect();
-        if (bufferNumber === 1) {
-            source1 = null;
-        } else if (bufferNumber === 2) {
-            source2 = null;
+    getCurrentTime() {
+        if (this.isPlaying) {
+            return this.audioContext.currentTime - this.startTime;
         }
+        return this.pauseTime;
     }
 }
+
+/***** END: Custom Audio Player Class ******/
+
 
 
 /***** START: Trigger audio play on toggle of start/stop button ******/
 
 // Function to toggle audio play/pause
-function toggleAudio(bufferNumber) {
-    if (bufferNumber === 1) {
+function toggleAudio(playerNumber) {
+    let player, rotationStartTimeVar, rotationAngleVar;
+    
+    if (playerNumber === 1) {
         if (!audioBuffer1) {
             console.warn('Please select Audio 1 file first.');
             return;
         }
-        if (isPlaying1) {
-            // Pause audio 1
-            stopAudioSource(source1, 1);
-            isPlaying1 = false;
-            pauseTime1 += audioContext.currentTime - startTime1;
-            rotationAngle1 += (pauseTime1 - rotationStartTime1) * 180; // Update rotation angle
-        } else {
-            // Resume or play audio 1
-            source1 = playAudio(audioBuffer1, pauseTime1, gainNode1);
-            startTime1 = audioContext.currentTime;
-            rotationStartTime1 = audioContext.currentTime;
-            isPlaying1 = true;
+        if (!player1) {
+            player1 = new CustomAudioPlayer(audioContext, audioBuffer1, gainNode1);
         }
-    } else if (bufferNumber === 2) {
+        player = player1;
+        rotationStartTimeVar = 'rotationStartTime1';
+        rotationAngleVar = 'rotationAngle1';
+    } else if (playerNumber === 2) {
         if (!audioBuffer2) {
             console.warn('Please select Audio 2 file first.');
             return;
         }
-        if (isPlaying2) {
-            // Pause audio 2
-            stopAudioSource(source2, 2);
-            isPlaying2 = false;
-            pauseTime2 += audioContext.currentTime - startTime2;
-            rotationAngle2 += (pauseTime2 - rotationStartTime2) * 180; // Update rotation angle
-        } else {
-            // Resume or play audio 2
-            source2 = playAudio(audioBuffer2, pauseTime2, gainNode2);
-            startTime2 = audioContext.currentTime;
-            rotationStartTime2 = audioContext.currentTime;
-            isPlaying2 = true;
+        if (!player2) {
+            player2 = new CustomAudioPlayer(audioContext, audioBuffer2, gainNode2);
         }
+        player = player2;
+        rotationStartTimeVar = 'rotationStartTime2';
+        rotationAngleVar = 'rotationAngle2';
+    }
+
+    if (player.isPlaying) {
+        player.pause();
+        window[rotationAngleVar] += (player.getCurrentTime() - window[rotationStartTimeVar]) * 180;
+    } else {
+        player.play();
+        window[rotationStartTimeVar] = audioContext.currentTime;
     }
 }
 
@@ -521,17 +536,15 @@ function updateDiskRotation(disk, angle) {
 
 // Rotate the disks continuously
 function animateDisks() {
-    const currentTime1 = audioContext.currentTime;
-    if (isPlaying1) {
-        rotationAngle1 += (currentTime1 - rotationStartTime1) * 180; // Degrees per second
-        rotationStartTime1 = currentTime1;
+    if (player1 && player1.isPlaying) {
+        const elapsedTime1 = player1.getCurrentTime();
+        rotationAngle1 = (elapsedTime1 * 180) % 360; // 180 degrees per second, reset at 360
         updateDiskRotation(leftDisk, rotationAngle1);
     }
 
-    const currentTime2 = audioContext.currentTime;
-    if (isPlaying2) {
-        rotationAngle2 += (currentTime2 - rotationStartTime2) * 180; // Degrees per second
-        rotationStartTime2 = currentTime2;
+    if (player2 && player2.isPlaying) {
+        const elapsedTime2 = player2.getCurrentTime();
+        rotationAngle2 = (elapsedTime2 * 180) % 360; // 180 degrees per second, reset at 360
         updateDiskRotation(rightDisk, rotationAngle2);
     }
 
