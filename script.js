@@ -17,7 +17,7 @@ masterGainNode.connect(audioContext.destination);
 gainNode1.connect(masterGainNode);
 gainNode2.connect(masterGainNode);
 
-// value between 0 and 1
+// Value between 0 and 1
 let track1GainValue = 1;
 let track2GainValue = 1;
 
@@ -26,6 +26,182 @@ gainNode1.gain.value = track1GainValue;
 gainNode2.gain.value = track2GainValue;
 
 /***** END: Create Audio Context ******/
+
+
+
+/***** START: Create Filters for Each Track ******/
+
+// Create Biquad Filters for Left (Track 1) and Right (Track 2)
+const leftTrackFilter = audioContext.createBiquadFilter();
+const rightTrackFilter = audioContext.createBiquadFilter();
+
+// Set default filter types to lowpass; will switch based on interaction
+leftTrackFilter.type = 'lowpass';
+rightTrackFilter.type = 'lowpass';
+
+// Connect each GainNode to its respective filter
+gainNode1.connect(leftTrackFilter);
+gainNode2.connect(rightTrackFilter);
+
+// Connect filters to the master GainNode
+leftTrackFilter.connect(masterGainNode);
+rightTrackFilter.connect(masterGainNode);
+
+/***** END: Create Filters for Each Track ******/
+
+/***** START: Filter Handle Controls for Left Side ******/
+
+// SVG Elements
+const lowPassLeftHandle = document.querySelector('.lowpass-left');
+
+// Variables to track dragging state
+let isDraggingLeft = false;
+let startAngleLeft = 0;
+let currentAngleLeft = 0;
+const maximumRotation = 110; // Maximum allowable rotation angle
+
+// Function to handle drag start for the left filter
+function startDragFilterLeft(event) {
+    isDraggingLeft = true;
+
+    const rect = lowPassLeftHandle.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    startAngleLeft = Math.atan2(event.clientY - centerY, event.clientX - centerX) * (180 / Math.PI);
+    event.preventDefault(); // Prevent default drag behavior
+}
+
+// Function to handle dragging for the left filter
+function handleDragFilterLeft(event) {
+    if (!isDraggingLeft) return;
+
+    const rect = lowPassLeftHandle.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+
+    const newAngleLeft = Math.atan2(event.clientY - centerY, event.clientX - centerX) * (180 / Math.PI);
+    let angleDiffLeft = newAngleLeft - startAngleLeft;
+
+    // Adjust angle difference to handle the rotation correctly
+    if (angleDiffLeft < -180) angleDiffLeft += 360;
+    if (angleDiffLeft > 180) angleDiffLeft -= 360;
+
+    currentAngleLeft += angleDiffLeft;
+    startAngleLeft = newAngleLeft;
+
+    // Restrict rotation between -110 degrees and +110 degrees
+    if (currentAngleLeft > maximumRotation) {
+        currentAngleLeft = maximumRotation;
+    } else if (currentAngleLeft < -maximumRotation) {
+        currentAngleLeft = -maximumRotation;
+    }
+
+    // Activate filters based on rotation direction for the left filter
+    if (currentAngleLeft < 0) {
+        // If dragging counter-clockwise, activate lowpass filter
+        leftTrackFilter.type = 'lowpass';
+    } else if (currentAngleLeft > 0) {
+        // If dragging clockwise, activate highpass filter
+        leftTrackFilter.type = 'highpass';
+    }
+
+    // Map the rotation angle to filter frequency values
+    const filterFrequencyLeft = ((currentAngleLeft + maximumRotation) / (2 * maximumRotation)) * 2000; // Frequency range from 0 to 2000 Hz
+    leftTrackFilter.frequency.value = filterFrequencyLeft;
+
+    // Rotate the handle visually
+    lowPassLeftHandle.style.transform = `rotate(${currentAngleLeft}deg)`;
+}
+
+// Function to stop dragging for the left filter
+function stopDragFilterLeft() {
+    isDraggingLeft = false;
+}
+
+// Event listeners for the left handle
+lowPassLeftHandle.addEventListener('mousedown', startDragFilterLeft);
+document.addEventListener('mousemove', handleDragFilterLeft);
+document.addEventListener('mouseup', stopDragFilterLeft);
+
+/***** END: Filter Handle Controls for Left Side ******/
+
+
+
+/***** START: Filter Handle Controls for Right Side ******/
+
+// SVG Elements for Right Filter
+const lowPassRightHandle = document.querySelector('.lowpass-right');
+
+// Variables to track dragging state for the right filter
+let isDraggingRight = false;
+let startAngleRight = 0;
+let currentAngleRight = 0;
+
+// Function to handle drag start for the right filter
+function startDragFilterRight(event) {
+    isDraggingRight = true;
+
+    const rect = lowPassRightHandle.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    startAngleRight = Math.atan2(event.clientY - centerY, event.clientX - centerX) * (180 / Math.PI);
+    event.preventDefault(); // Prevent default drag behavior
+}
+
+// Function to handle dragging for the right filter
+function handleDragFilterRight(event) {
+    if (!isDraggingRight) return;
+
+    const rect = lowPassRightHandle.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+
+    const newAngleRight = Math.atan2(event.clientY - centerY, event.clientX - centerX) * (180 / Math.PI);
+    let angleDiffRight = newAngleRight - startAngleRight;
+
+    // Adjust angle difference to handle the rotation correctly
+    if (angleDiffRight < -180) angleDiffRight += 360;
+    if (angleDiffRight > 180) angleDiffRight -= 360;
+
+    currentAngleRight += angleDiffRight;
+    startAngleRight = newAngleRight;
+
+    // Restrict rotation between -110 degrees and +110 degrees
+    if (currentAngleRight > maximumRotation) {
+        currentAngleRight = maximumRotation;
+    } else if (currentAngleRight < -maximumRotation) {
+        currentAngleRight = -maximumRotation;
+    }
+
+    // Activate filters based on rotation direction for the right filter
+    if (currentAngleRight < 0) {
+        // If dragging counter-clockwise, activate lowpass filter
+        rightTrackFilter.type = 'lowpass';
+    } else if (currentAngleRight > 0) {
+        // If dragging clockwise, activate highpass filter
+        rightTrackFilter.type = 'highpass';
+    }
+
+    // Map the rotation angle to filter frequency values
+    const filterFrequencyRight = ((currentAngleRight + maximumRotation) / (2 * maximumRotation)) * 2000; // Frequency range from 0 to 2000 Hz
+    rightTrackFilter.frequency.value = filterFrequencyRight;
+
+    // Rotate the handle visually
+    lowPassRightHandle.style.transform = `rotate(${currentAngleRight}deg)`;
+}
+
+// Function to stop dragging for the right filter
+function stopDragFilterRight() {
+    isDraggingRight = false;
+}
+
+// Event listeners for the right handle
+lowPassRightHandle.addEventListener('mousedown', startDragFilterRight);
+document.addEventListener('mousemove', handleDragFilterRight);
+document.addEventListener('mouseup', stopDragFilterRight);
+
+/***** END: Filter Handle Controls for Right Side ******/
+
 
 
 /***** START: Initialize Global Variables ******/
@@ -267,21 +443,6 @@ const updateHandleRight = (y) => {
     }
 };
 
-// // Function to update handle and output value for the master fader
-// const updateFader = (x) => {
-//     if (!isNaN(x)) {
-//         // Constrain the handle's position within the track's boundaries
-//         const constrainedX = clamp(x, faderTrackX1, faderTrackX2 - faderHandleWidth);
-//         faderHandle.setAttribute('x', constrainedX);
-
-//         // Normalize the constrained handle position to a value between 0 and 1
-//         const normalizedValue = (constrainedX - faderTrackX1) / (faderTrackX2 - faderTrackX1 - faderHandleWidth);
-
-//         // Adjust the balance between left and right tracks
-//         masterGainNode.gain.value = normalizedValue;  // This controls the balance
-//     }
-// };
-
 // Function to update handle and output value for the crossfader
 const updateFader = (x) => {
     if (!isNaN(x)) {
@@ -297,9 +458,6 @@ const updateFader = (x) => {
         gainNode2.gain.value = normalizedValue;    // Right track fades in as the handle moves right
     }
 };
-
-// Example of clamping function, if not already defined
-// const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
 
 // Event handlers for dragging sliders

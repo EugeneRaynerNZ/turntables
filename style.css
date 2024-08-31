@@ -40,6 +40,11 @@ svg * {
     fill: white
 } */
 
+.lowpass-left, .lowpass-right, #LowPassLeftHandle, #LowPassRightHandle {
+    transform-origin: center center;
+    transform-box: fill-box;
+}
+
 
 @keyframes rotating {
     from {
