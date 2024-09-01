@@ -54,7 +54,7 @@ rightTrackFilter.connect(masterGainNode);
 /***** START: Filter Handle Controls for Left Side ******/
 
 // SVG Elements
-const lowPassLeftHandle = document.querySelector('.lowpass-left');
+const lowPassLeftHandle = document.querySelector('.lp-hp--left');
 
 // Variables to track dragging state
 let isDraggingLeft = false;
@@ -132,7 +132,7 @@ document.addEventListener('mouseup', stopDragFilterLeft);
 /***** START: Filter Handle Controls for Right Side ******/
 
 // SVG Elements for Right Filter
-const lowPassRightHandle = document.querySelector('.lowpass-right');
+const lowPassRightHandle = document.querySelector('.lp-hp--right');
 
 // Variables to track dragging state for the right filter
 let isDraggingRight = false;
@@ -366,15 +366,15 @@ function fileInformation(file, playerNumber) {
     ];
 
     // Set the correct translation based on the player number
-    const translateX = playerNumber === 1 ? 90 : 760;
+    const translateX = playerNumber === 1 ? 17 : 943;
 
     infoTexts.forEach((text, index) => {
         const textElement = document.createElementNS("http://www.w3.org/2000/svg", "text");
-        textElement.setAttribute('x', '10');
-        textElement.setAttribute('y', (index * 20 + 10).toString());
+        textElement.setAttribute('x', '0');
+        textElement.setAttribute('y', (index * 16 + 16).toString());
         textElement.setAttribute('fill', 'white');
         textElement.setAttribute('font-size', '14');
-        textElement.setAttribute('transform', `translate(${translateX}, 441)`);
+        textElement.setAttribute('transform', `translate(${translateX}, 12)`);
         textElement.textContent = text;
         infoContainer.appendChild(textElement);
     });
@@ -382,7 +382,6 @@ function fileInformation(file, playerNumber) {
 
 // ... rest of your code ...
 
-// Update the handleFileInput function
 function handleFileInput(event, bufferNumber) {
     const file = event.target.files[0];
     if (!file) return;
@@ -398,6 +397,15 @@ function handleFileInput(event, bufferNumber) {
                 audioBuffer1 = buffer;
                 console.log('Audio 1 data decoded successfully');
                 toggleButton1.classList.remove('disabled');
+                
+                // Restart player 1 if it exists
+                if (player1) {
+                    player1.pause();
+                    player1 = new CustomAudioPlayer(audioContext, audioBuffer1, gainNode1);
+                    if (toggleButton1.classList.contains('playing')) {
+                        player1.play();
+                    }
+                }
             }, function(error) {
                 console.error('Error decoding audio data:', error);
             });
@@ -406,6 +414,15 @@ function handleFileInput(event, bufferNumber) {
                 audioBuffer2 = buffer;
                 console.log('Audio 2 data decoded successfully');
                 toggleButton2.classList.remove('disabled');
+                
+                // Restart player 2 if it exists
+                if (player2) {
+                    player2.pause();
+                    player2 = new CustomAudioPlayer(audioContext, audioBuffer2, gainNode2);
+                    if (toggleButton2.classList.contains('playing')) {
+                        player2.play();
+                    }
+                }
             }, function(error) {
                 console.error('Error decoding audio data:', error);
             });
@@ -714,8 +731,8 @@ masterGainNode.connect(analyser);
 // Canvas setup
 const canvas = document.getElementById('analyzerCanvas');
 const canvasCtx = canvas.getContext('2d');
-canvas.width = 200;
-canvas.height = 100;
+canvas.width = 118;
+canvas.height = 183;
 
 function draw() {
     requestAnimationFrame(draw);

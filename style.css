@@ -21,18 +21,18 @@ svg text {
     font-size: 11px;
 }
 
+.current-audio text {
+    fill: rgb(83 195 144);
+}
+
 .turntables--container {
     position: relative;
 }
 .analyzer {
     margin-top: 20px;
     position: absolute;
-    top: 0;
-    left: 464px;   
-}
-
-#analyzerCanvas {
-    border: 1px solid #333;
+    top: 96px;
+    left: 660px;
 }
 
 .left-table--start, .right-table--start, #VolumeLeftHandle, #VolumeRightHandle, .left-table--add, .right-table--add {
@@ -65,7 +65,7 @@ svg text {
     fill: white
 } */
 
-.lowpass-left, .lowpass-right {
+.lp-hp--left, .lp-hp--right {
     transform-origin: center center;
     transform-box: fill-box;
     cursor: pointer;
