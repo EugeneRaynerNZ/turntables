@@ -192,7 +192,7 @@ document.addEventListener('mouseup', stopDragLPHPLeft);
 
 
 
-/***** START: Filter Handle Controls for Left Right ******/
+/***** START: Filter Handle Controls for Right ******/
 
 // SVG Elements
 const lphpRightHandle = document.querySelector('.lp-hp--right');
@@ -265,7 +265,538 @@ lphpRightHandle.addEventListener('mousedown', startDragLPHPRight);
 document.addEventListener('mousemove', handleDragLPHPRight);
 document.addEventListener('mouseup', stopDragLPHPRight);
 
-/***** END: Filter Handle Controls for Left Right ******/
+/***** END: Filter Handle Controls for Right ******/
+
+
+
+/***** START: Filter Handle Controls for Master Gain ******/
+
+// Create a new filter for the master gain
+const masterLPHPFilter = audioContext.createBiquadFilter();
+masterLPHPFilter.type = 'lowpass'; // Default to lowpass
+
+// Connect the master filter to the master gain node
+masterLPHPFilter.connect(masterGainNode);
+
+// SVG Elements
+const lphpMasterHandle = document.querySelector('.lp-hp--master');
+
+// Variables to track dragging state
+let lphpMasterFilterDragging = false;
+let lphpMasterFilterStartAngle = 0;
+let lphpMasterFilterCurrentAngle = 0;
+
+// Function to handle drag start for the master filter
+function startDragLPHPMaster(event) {
+    lphpMasterFilterDragging = true;
+
+    const rect = lphpMasterHandle.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    lphpMasterFilterStartAngle = Math.atan2(event.clientY - centerY, event.clientX - centerX) * (180 / Math.PI);
+    event.preventDefault(); // Prevent default drag behavior
+}
+
+// Function to handle dragging for the master filter
+function handleDragLPHPMaster(event) {
+    if (!lphpMasterFilterDragging) return;
+
+    const rect = lphpMasterHandle.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+
+    const newAngleMaster = Math.atan2(event.clientY - centerY, event.clientX - centerX) * (180 / Math.PI);
+    let angleDiffMaster = newAngleMaster - lphpMasterFilterStartAngle;
+
+    // Adjust angle difference to handle the rotation correctly
+    if (angleDiffMaster < -180) angleDiffMaster += 360;
+    if (angleDiffMaster > 180) angleDiffMaster -= 360;
+
+    lphpMasterFilterCurrentAngle += angleDiffMaster;
+    lphpMasterFilterStartAngle = newAngleMaster;
+
+    // Restrict rotation between -maximumRotation degrees and +maximumRotation degrees
+    if (lphpMasterFilterCurrentAngle > maximumRotation) {
+        lphpMasterFilterCurrentAngle = maximumRotation;
+    } else if (lphpMasterFilterCurrentAngle < -maximumRotation) {
+        lphpMasterFilterCurrentAngle = -maximumRotation;
+    }
+
+    // Activate filters based on rotation direction for the master filter
+    if (lphpMasterFilterCurrentAngle < 0) {
+        // If dragging counter-clockwise, activate lowpass filter
+        masterLPHPFilter.type = 'lowpass';
+    } else if (lphpMasterFilterCurrentAngle > 0) {
+        // If dragging clockwise, activate highpass filter
+        masterLPHPFilter.type = 'highpass';
+    }
+
+    // Map the rotation angle to filter frequency values
+    const filterFrequencyMaster = ((lphpMasterFilterCurrentAngle + maximumRotation) / (2 * maximumRotation)) * 2000; // Frequency range from 0 to 2000 Hz
+    masterLPHPFilter.frequency.value = filterFrequencyMaster;
+
+    // Rotate the handle visually
+    lphpMasterHandle.style.transform = `rotate(${lphpMasterFilterCurrentAngle}deg)`;
+}
+
+// Function to stop dragging for the master filter
+function stopDragLPHPMaster() {
+    lphpMasterFilterDragging = false;
+}
+
+// Event listeners for the master handle
+lphpMasterHandle.addEventListener('mousedown', startDragLPHPMaster);
+document.addEventListener('mousemove', handleDragLPHPMaster);
+document.addEventListener('mouseup', stopDragLPHPMaster);
+
+/***** END: Filter Handle Controls for Master Gain ******/
+
+
+/***** START: Lowpass Filter Control ******/
+
+// Create a lowpass filter for the left track
+const lowpassFilterLeft = audioContext.createBiquadFilter();
+lowpassFilterLeft.type = 'lowpass';
+lowpassFilterLeft.frequency.value = 0;
+
+// Connect the lowpass filter to gainNode1
+gainNode1.connect(lowpassFilterLeft);
+lowpassFilterLeft.connect(masterGainNode);
+
+const lowFilterKnobLeft = document.querySelector('.low-filter--left');
+let lowFilterDraggingLeft = false;
+let lowFilterStartAngleLeft = 0;
+let lowFilterCurrentAngleLeft = 0;
+
+// Function to handle drag start for the lowpass filter knob
+function startDragLowFilterLeft(event) {
+    lowFilterDraggingLeft = true;
+
+    const rect = lowFilterKnobLeft.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    lowFilterStartAngleLeft = Math.atan2(event.clientY - centerY, event.clientX - centerX) * (180 / Math.PI);
+    event.preventDefault(); // Prevent default drag behavior
+}
+
+// Function to handle dragging for the lowpass filter knob
+function handleDragLowFilterLeft(event) {
+    if (!lowFilterDraggingLeft) return;
+
+    const rect = lowFilterKnobLeft.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+
+    const newAngle = Math.atan2(event.clientY - centerY, event.clientX - centerX) * (180 / Math.PI);
+    let angleDiff = newAngle - lowFilterStartAngleLeft;
+
+    // Adjust angle difference to handle the rotation correctly
+    if (angleDiff < -180) angleDiff += 360;
+    if (angleDiff > 180) angleDiff -= 360;
+
+    lowFilterCurrentAngleLeft += angleDiff;
+    lowFilterStartAngleLeft = newAngle;
+
+    // Restrict rotation between -maximumRotation degrees and +maximumRotation degrees
+    if (lowFilterCurrentAngleLeft > maximumRotation) {
+        lowFilterCurrentAngleLeft = maximumRotation;
+    } else if (lowFilterCurrentAngleLeft < -maximumRotation) {
+        lowFilterCurrentAngleLeft = -maximumRotation;
+    }
+
+    // Map the rotation angle to filter frequency values (20 Hz to 20000 Hz)
+    const frequencyValue = ((lowFilterCurrentAngleLeft + maximumRotation) / (2 * maximumRotation)) * (20000 - 20) + 20;
+    lowpassFilterLeft.frequency.value = frequencyValue;
+
+    // Rotate the knob visually
+    lowFilterKnobLeft.style.transform = `rotate(${lowFilterCurrentAngleLeft}deg)`;
+}
+
+// Function to stop dragging for the lowpass filter knob
+function stopDragLowFilterLeft() {
+    lowFilterDraggingLeft = false;
+}
+
+// Event listeners for the lowpass filter knob
+lowFilterKnobLeft.addEventListener('mousedown', startDragLowFilterLeft);
+document.addEventListener('mousemove', handleDragLowFilterLeft);
+document.addEventListener('mouseup', stopDragLowFilterLeft);
+
+/***** END: Lowpass Filter Control ******/
+
+
+/***** START: Peaking Filter Control ******/
+
+// Create a peaking filter for the left track
+const peakingFilterLeft = audioContext.createBiquadFilter();
+peakingFilterLeft.type = 'peaking';
+peakingFilterLeft.frequency.value = 1000;
+peakingFilterLeft.Q.value = 1; 
+
+// Connect the peaking filter to gainNode1
+gainNode1.connect(peakingFilterLeft);
+peakingFilterLeft.connect(masterGainNode);
+
+const midFilterKnobLeft = document.querySelector('.mid-filter--left');
+let midFilterDraggingLeft = false;
+let midFilterStartAngleLeft = 0;
+let midFilterCurrentAngleLeft = 0;
+
+// Function to handle drag start for the peaking filter knob
+function startDragMidFilterLeft(event) {
+    midFilterDraggingLeft = true;
+
+    const rect = midFilterKnobLeft.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    midFilterStartAngleLeft = Math.atan2(event.clientY - centerY, event.clientX - centerX) * (180 / Math.PI);
+    event.preventDefault(); // Prevent default drag behavior
+}
+
+// Function to handle dragging for the peaking filter knob
+function handleDragMidFilterLeft(event) {
+    if (!midFilterDraggingLeft) return;
+
+    const rect = midFilterKnobLeft.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+
+    const newAngle = Math.atan2(event.clientY - centerY, event.clientX - centerX) * (180 / Math.PI);
+    let angleDiff = newAngle - midFilterStartAngleLeft;
+
+    // Adjust angle difference to handle the rotation correctly
+    if (angleDiff < -180) angleDiff += 360;
+    if (angleDiff > 180) angleDiff -= 360;
+
+    midFilterCurrentAngleLeft += angleDiff;
+    midFilterStartAngleLeft = newAngle;
+
+    // Restrict rotation between -maximumRotation degrees and +maximumRotation degrees
+    if (midFilterCurrentAngleLeft > maximumRotation) {
+        midFilterCurrentAngleLeft = maximumRotation;
+    } else if (midFilterCurrentAngleLeft < -maximumRotation) {
+        midFilterCurrentAngleLeft = -maximumRotation;
+    }
+
+    // Map the rotation angle to filter frequency values (20 Hz to 20000 Hz) with reversed mapping
+    const frequencyValue = ((maximumRotation - midFilterCurrentAngleLeft) / (2 * maximumRotation)) * (20000 - 20) + 20;
+    peakingFilterLeft.frequency.value = frequencyValue;
+
+    // Update Q value based on the angle (example: 0.1 to 10)
+    const qValue = ((midFilterCurrentAngleLeft + maximumRotation) / (2 * maximumRotation)) * (10 - 0.1) + 0.1;
+    peakingFilterLeft.Q.value = qValue;
+
+    // Rotate the knob visually
+    midFilterKnobLeft.style.transform = `rotate(${midFilterCurrentAngleLeft}deg)`;
+}
+
+// Function to stop dragging for the peaking filter knob
+function stopDragMidFilterLeft() {
+    midFilterDraggingLeft = false;
+}
+
+// Event listeners for the peaking filter knob
+midFilterKnobLeft.addEventListener('mousedown', startDragMidFilterLeft);
+document.addEventListener('mousemove', handleDragMidFilterLeft);
+document.addEventListener('mouseup', stopDragMidFilterLeft);
+
+/***** END: Peaking Filter Control ******/
+
+
+/***** START: Highpass Filter Control ******/
+
+// Create a highpass filter for the left track
+const highpassFilterLeft = audioContext.createBiquadFilter();
+highpassFilterLeft.type = 'highpass';
+
+// Connect the highpass filter to gainNode1
+gainNode1.connect(highpassFilterLeft);
+highpassFilterLeft.connect(masterGainNode);
+
+const highFilterKnobLeft = document.querySelector('.high-filter--left');
+let highFilterDraggingLeft = false;
+let highFilterStartAngleLeft = 0;
+let highFilterCurrentAngleLeft = 0;
+
+// Function to handle drag start for the highpass filter knob
+function startDragHighFilterLeft(event) {
+    highFilterDraggingLeft = true;
+
+    const rect = highFilterKnobLeft.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    highFilterStartAngleLeft = Math.atan2(event.clientY - centerY, event.clientX - centerX) * (180 / Math.PI);
+    event.preventDefault(); // Prevent default drag behavior
+}
+
+// Function to handle dragging for the highpass filter knob
+function handleDragHighFilterLeft(event) {
+    if (!highFilterDraggingLeft) return;
+
+    const rect = highFilterKnobLeft.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+
+    const newAngle = Math.atan2(event.clientY - centerY, event.clientX - centerX) * (180 / Math.PI);
+    let angleDiff = newAngle - highFilterStartAngleLeft;
+
+    // Adjust angle difference to handle the rotation correctly
+    if (angleDiff < -180) angleDiff += 360;
+    if (angleDiff > 180) angleDiff -= 360;
+
+    highFilterCurrentAngleLeft += angleDiff;
+    highFilterStartAngleLeft = newAngle;
+
+    // Restrict rotation between -maximumRotation degrees and +maximumRotation degrees
+    if (highFilterCurrentAngleLeft > maximumRotation) {
+        highFilterCurrentAngleLeft = maximumRotation;
+    } else if (highFilterCurrentAngleLeft < -maximumRotation) {
+        highFilterCurrentAngleLeft = -maximumRotation;
+    }
+
+    // Map the rotation angle to filter frequency values (20 Hz to 20000 Hz)
+    const frequencyValue = ((maximumRotation - highFilterCurrentAngleLeft) / (2 * maximumRotation)) * (20000 - 20) + 20;
+    highpassFilterLeft.frequency.value = frequencyValue;
+
+    // Rotate the knob visually
+    highFilterKnobLeft.style.transform = `rotate(${highFilterCurrentAngleLeft}deg)`;
+}
+
+// Function to stop dragging for the highpass filter knob
+function stopDragHighFilterLeft() {
+    highFilterDraggingLeft = false;
+}
+
+// Event listeners for the highpass filter knob
+highFilterKnobLeft.addEventListener('mousedown', startDragHighFilterLeft);
+document.addEventListener('mousemove', handleDragHighFilterLeft);
+document.addEventListener('mouseup', stopDragHighFilterLeft);
+
+/***** END: Highpass Filter Control ******/
+
+
+
+/***** START: Lowpass Filter Control for Right Track ******/
+
+// Create a lowpass filter for the right track
+const lowpassFilterRight = audioContext.createBiquadFilter();
+lowpassFilterRight.type = 'lowpass';
+lowpassFilterRight.frequency.value = 0;
+
+// Connect the lowpass filter to gainNode2
+gainNode2.connect(lowpassFilterRight);
+lowpassFilterRight.connect(masterGainNode);
+
+const lowFilterKnobRight = document.querySelector('.low-filter--right');
+let lowFilterDraggingRight = false;
+let lowFilterStartAngleRight = 0;
+let lowFilterCurrentAngleRight = 0;
+
+// Function to handle drag start for the lowpass filter knob
+function startDragLowFilterRight(event) {
+    lowFilterDraggingRight = true;
+
+    const rect = lowFilterKnobRight.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    lowFilterStartAngleRight = Math.atan2(event.clientY - centerY, event.clientX - centerX) * (180 / Math.PI);
+    event.preventDefault(); // Prevent default drag behavior
+}
+
+// Function to handle dragging for the lowpass filter knob
+function handleDragLowFilterRight(event) {
+    if (!lowFilterDraggingRight) return;
+
+    const rect = lowFilterKnobRight.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+
+    const newAngle = Math.atan2(event.clientY - centerY, event.clientX - centerX) * (180 / Math.PI);
+    let angleDiff = newAngle - lowFilterStartAngleRight;
+
+    // Adjust angle difference to handle the rotation correctly
+    if (angleDiff < -180) angleDiff += 360;
+    if (angleDiff > 180) angleDiff -= 360;
+
+    lowFilterCurrentAngleRight += angleDiff;
+    lowFilterStartAngleRight = newAngle;
+
+    // Restrict rotation between -maximumRotation degrees and +maximumRotation degrees
+    if (lowFilterCurrentAngleRight > maximumRotation) {
+        lowFilterCurrentAngleRight = maximumRotation;
+    } else if (lowFilterCurrentAngleRight < -maximumRotation) {
+        lowFilterCurrentAngleRight = -maximumRotation;
+    }
+
+    // Map the rotation angle to filter frequency values (20 Hz to 20000 Hz)
+    const frequencyValue = ((lowFilterCurrentAngleRight + maximumRotation) / (2 * maximumRotation)) * (20000 - 20) + 20;
+    lowpassFilterRight.frequency.value = frequencyValue;
+
+    // Rotate the knob visually
+    lowFilterKnobRight.style.transform = `rotate(${lowFilterCurrentAngleRight}deg)`;
+}
+
+// Function to stop dragging for the lowpass filter knob
+function stopDragLowFilterRight() {
+    lowFilterDraggingRight = false;
+}
+
+// Event listeners for the lowpass filter knob
+lowFilterKnobRight.addEventListener('mousedown', startDragLowFilterRight);
+document.addEventListener('mousemove', handleDragLowFilterRight);
+document.addEventListener('mouseup', stopDragLowFilterRight);
+
+/***** END: Lowpass Filter Control for Right Track ******/
+
+
+/***** START: Peaking Filter Control for Right Track ******/
+
+// Create a peaking filter for the right track
+const peakingFilterRight = audioContext.createBiquadFilter();
+peakingFilterRight.type = 'peaking';
+peakingFilterRight.frequency.value = 1000;
+peakingFilterRight.Q.value = 1; 
+
+// Connect the peaking filter to gainNode2
+gainNode2.connect(peakingFilterRight);
+peakingFilterRight.connect(masterGainNode);
+
+const midFilterKnobRight = document.querySelector('.mid-filter--right');
+let midFilterDraggingRight = false;
+let midFilterStartAngleRight = 0;
+let midFilterCurrentAngleRight = 0;
+
+// Function to handle drag start for the peaking filter knob
+function startDragMidFilterRight(event) {
+    midFilterDraggingRight = true;
+
+    const rect = midFilterKnobRight.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    midFilterStartAngleRight = Math.atan2(event.clientY - centerY, event.clientX - centerX) * (180 / Math.PI);
+    event.preventDefault(); // Prevent default drag behavior
+}
+
+// Function to handle dragging for the peaking filter knob
+function handleDragMidFilterRight(event) {
+    if (!midFilterDraggingRight) return;
+
+    const rect = midFilterKnobRight.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+
+    const newAngle = Math.atan2(event.clientY - centerY, event.clientX - centerX) * (180 / Math.PI);
+    let angleDiff = newAngle - midFilterStartAngleRight;
+
+    // Adjust angle difference to handle the rotation correctly
+    if (angleDiff < -180) angleDiff += 360;
+    if (angleDiff > 180) angleDiff -= 360;
+
+    midFilterCurrentAngleRight += angleDiff;
+    midFilterStartAngleRight = newAngle;
+
+    // Restrict rotation between -maximumRotation degrees and +maximumRotation degrees
+    if (midFilterCurrentAngleRight > maximumRotation) {
+        midFilterCurrentAngleRight = maximumRotation;
+    } else if (midFilterCurrentAngleRight < -maximumRotation) {
+        midFilterCurrentAngleRight = -maximumRotation;
+    }
+
+    // Map the rotation angle to filter frequency values (20 Hz to 20000 Hz) with reversed mapping
+    const frequencyValue = ((maximumRotation - midFilterCurrentAngleRight) / (2 * maximumRotation)) * (20000 - 20) + 20;
+    peakingFilterRight.frequency.value = frequencyValue;
+
+    // Update Q value based on the angle (example: 0.1 to 10)
+    const qValue = ((midFilterCurrentAngleRight + maximumRotation) / (2 * maximumRotation)) * (10 - 0.1) + 0.1;
+    peakingFilterRight.Q.value = qValue;
+
+    // Rotate the knob visually
+    midFilterKnobRight.style.transform = `rotate(${midFilterCurrentAngleRight}deg)`;
+}
+
+// Function to stop dragging for the peaking filter knob
+function stopDragMidFilterRight() {
+    midFilterDraggingRight = false;
+}
+
+// Event listeners for the peaking filter knob
+midFilterKnobRight.addEventListener('mousedown', startDragMidFilterRight);
+document.addEventListener('mousemove', handleDragMidFilterRight);
+document.addEventListener('mouseup', stopDragMidFilterRight);
+
+/***** END: Peaking Filter Control for Right Track ******/
+
+
+/***** START: Highpass Filter Control for Right Track ******/
+
+// Create a highpass filter for the right track
+const highpassFilterRight = audioContext.createBiquadFilter();
+highpassFilterRight.type = 'highpass';
+
+// Connect the highpass filter to gainNode2
+gainNode2.connect(highpassFilterRight);
+highpassFilterRight.connect(masterGainNode);
+
+const highFilterKnobRight = document.querySelector('.high-filter--right');
+let highFilterDraggingRight = false;
+let highFilterStartAngleRight = 0;
+let highFilterCurrentAngleRight = 0;
+
+// Function to handle drag start for the highpass filter knob
+function startDragHighFilterRight(event) {
+    highFilterDraggingRight = true;
+
+    const rect = highFilterKnobRight.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    highFilterStartAngleRight = Math.atan2(event.clientY - centerY, event.clientX - centerX) * (180 / Math.PI);
+    event.preventDefault(); // Prevent default drag behavior
+}
+
+// Function to handle dragging for the highpass filter knob
+function handleDragHighFilterRight(event) {
+    if (!highFilterDraggingRight) return;
+
+    const rect = highFilterKnobRight.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+
+    const newAngle = Math.atan2(event.clientY - centerY, event.clientX - centerX) * (180 / Math.PI);
+    let angleDiff = newAngle - highFilterStartAngleRight;
+
+    // Adjust angle difference to handle the rotation correctly
+    if (angleDiff < -180) angleDiff += 360;
+    if (angleDiff > 180) angleDiff -= 360;
+
+    highFilterCurrentAngleRight += angleDiff;
+    highFilterStartAngleRight = newAngle;
+
+    // Restrict rotation between -maximumRotation degrees and +maximumRotation degrees
+    if (highFilterCurrentAngleRight > maximumRotation) {
+        highFilterCurrentAngleRight = maximumRotation;
+    } else if (highFilterCurrentAngleRight < -maximumRotation) {
+        highFilterCurrentAngleRight = -maximumRotation;
+    }
+
+    // Map the rotation angle to filter frequency values (20 Hz to 20000 Hz)
+    const frequencyValue = ((maximumRotation - highFilterCurrentAngleRight) / (2 * maximumRotation)) * (20000 - 20) + 20;
+    highpassFilterRight.frequency.value = frequencyValue;
+
+    // Rotate the knob visually
+    highFilterKnobRight.style.transform = `rotate(${highFilterCurrentAngleRight}deg)`;
+}
+
+// Function to stop dragging for the highpass filter knob
+function stopDragHighFilterRight() {
+    highFilterDraggingRight = false;
+}
+
+// Event listeners for the highpass filter knob
+highFilterKnobRight.addEventListener('mousedown', startDragHighFilterRight);
+document.addEventListener('mousemove', handleDragHighFilterRight);
+document.addEventListener('mouseup', stopDragHighFilterRight);
+
+/***** END: Highpass Filter Control for Right Track ******/
 
 
 

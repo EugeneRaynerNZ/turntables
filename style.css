@@ -71,7 +71,19 @@ svg text {
     cursor: pointer;
 }
 
-.gain--master {
+.gain--master, .lp-hp--master {
+    transform-origin: center center;
+    transform-box: fill-box;
+    cursor: pointer;
+}
+
+.low-filter--left, .mid-filter--left, .high-filter--left {
+    transform-origin: center center;
+    transform-box: fill-box;
+    cursor: pointer;
+}
+
+.low-filter--right, .mid-filter--right, .high-filter--right {
     transform-origin: center center;
     transform-box: fill-box;
     cursor: pointer;
