@@ -71,6 +71,12 @@ svg text {
     cursor: pointer;
 }
 
+.gain--master {
+    transform-origin: center center;
+    transform-box: fill-box;
+    cursor: pointer;
+}
+
 
 @keyframes rotating {
     from {

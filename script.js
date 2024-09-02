@@ -25,9 +25,72 @@ let track2GainValue = 1;
 gainNode1.gain.value = track1GainValue;
 gainNode2.gain.value = track2GainValue;
 
+const maximumRotation = 140; // Maximum allowable rotation angle
+
 /***** END: Create Audio Context ******/
 
+/***** START: Master Gain Control ******/
 
+const masterGainKnob = document.querySelector('.gain--master');
+let masterGainDragging = false;
+let masterGainStartAngle = 0;
+let masterGainCurrentAngle = 0;
+
+// Function to handle drag start for the master gain knob
+function startDragMasterGain(event) {
+    masterGainDragging = true;
+
+    const rect = masterGainKnob.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    masterGainStartAngle = Math.atan2(event.clientY - centerY, event.clientX - centerX) * (180 / Math.PI);
+    event.preventDefault(); // Prevent default drag behavior
+}
+
+// Function to handle dragging for the master gain knob
+function handleDragMasterGain(event) {
+    if (!masterGainDragging) return;
+
+    const rect = masterGainKnob.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+
+    const newAngle = Math.atan2(event.clientY - centerY, event.clientX - centerX) * (180 / Math.PI);
+    let angleDiff = newAngle - masterGainStartAngle;
+
+    // Adjust angle difference to handle the rotation correctly
+    if (angleDiff < -180) angleDiff += 360;
+    if (angleDiff > 180) angleDiff -= 360;
+
+    masterGainCurrentAngle += angleDiff;
+    masterGainStartAngle = newAngle;
+
+    // Restrict rotation between -maximumRotation degrees and +maximumRotation degrees
+    if (masterGainCurrentAngle > maximumRotation) {
+        masterGainCurrentAngle = maximumRotation;
+    } else if (masterGainCurrentAngle < -maximumRotation) {
+        masterGainCurrentAngle = -maximumRotation;
+    }
+
+    // Map the rotation angle to gain values (0 to 1)
+    const gainValue = (masterGainCurrentAngle + maximumRotation) / (2 * maximumRotation);
+    masterGainNode.gain.value = gainValue;
+
+    // Rotate the knob visually
+    masterGainKnob.style.transform = `rotate(${masterGainCurrentAngle}deg)`;
+}
+
+// Function to stop dragging for the master gain knob
+function stopDragMasterGain() {
+    masterGainDragging = false;
+}
+
+// Event listeners for the master gain knob
+masterGainKnob.addEventListener('mousedown', startDragMasterGain);
+document.addEventListener('mousemove', handleDragMasterGain);
+document.addEventListener('mouseup', stopDragMasterGain);
+
+/***** END: Master Gain Control ******/
 
 /***** START: Create Filters for Each Track ******/
 
@@ -60,7 +123,7 @@ const lphpLeftHandle = document.querySelector('.lp-hp--left');
 let lphpLeftFilterDragging = false;
 let lphpLeftFilterStartAngle = 0;
 let lphpLeftFilterCurrentAngle = 0;
-const maximumRotation = 140; // Maximum allowable rotation angle
+
 
 // Function to handle drag start for the left filter
 function startDragLPHPLeft(event) {
@@ -129,18 +192,18 @@ document.addEventListener('mouseup', stopDragLPHPLeft);
 
 
 
-/***** START: Filter Handle Controls for Right Side ******/
+/***** START: Filter Handle Controls for Left Right ******/
 
-// SVG Elements for Right Filter
+// SVG Elements
 const lphpRightHandle = document.querySelector('.lp-hp--right');
 
-// Variables to track dragging state for the right filter
+// Variables to track dragging state
 let lphpRightFilterDragging = false;
 let lphpRightFilterStartAngle = 0;
 let lphpRightFilterCurrentAngle = 0;
 
-// Function to handle drag start for the right filter
-function startDragFilterRight(event) {
+// Function to handle drag start for the left filter
+function startDragLPHPRight(event) {
     lphpRightFilterDragging = true;
 
     const rect = lphpRightHandle.getBoundingClientRect();
@@ -150,32 +213,32 @@ function startDragFilterRight(event) {
     event.preventDefault(); // Prevent default drag behavior
 }
 
-// Function to handle dragging for the right filter
-function handleDragFilterRight(event) {
+// Function to handle dragging for the left filter
+function handleDragLPHPRight(event) {
     if (!lphpRightFilterDragging) return;
 
     const rect = lphpRightHandle.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
     const centerY = rect.top + rect.height / 2;
 
-    const newAngleRight = Math.atan2(event.clientY - centerY, event.clientX - centerX) * (180 / Math.PI);
-    let angleDiffRight = newAngleRight - lphpRightFilterStartAngle;
+    const newAngleLeft = Math.atan2(event.clientY - centerY, event.clientX - centerX) * (180 / Math.PI);
+    let angleDiffLeft = newAngleLeft - lphpRightFilterStartAngle;
 
     // Adjust angle difference to handle the rotation correctly
-    if (angleDiffRight < -180) angleDiffRight += 360;
-    if (angleDiffRight > 180) angleDiffRight -= 360;
+    if (angleDiffLeft < -180) angleDiffLeft += 360;
+    if (angleDiffLeft > 180) angleDiffLeft -= 360;
 
-    lphpRightFilterCurrentAngle += angleDiffRight;
-    lphpRightFilterStartAngle = newAngleRight;
+    lphpRightFilterCurrentAngle += angleDiffLeft;
+    lphpRightFilterStartAngle = newAngleLeft;
 
     // Restrict rotation between -110 degrees and +110 degrees
     if (lphpRightFilterCurrentAngle > maximumRotation) {
         lphpRightFilterCurrentAngle = maximumRotation;
     } else if (lphpRightFilterCurrentAngle < -maximumRotation) {
-        currentAngleRight = -maximumRotation;
-    }lphpRightFilterCurrentAngle
+        lphpRightFilterCurrentAngle = -maximumRotation;
+    }
 
-    // Activate filters based on rotation direction for the right filter
+    // Activate filters based on rotation direction for the left filter
     if (lphpRightFilterCurrentAngle < 0) {
         // If dragging counter-clockwise, activate lowpass filter
         rightTrackFilter.type = 'lowpass';
@@ -185,24 +248,24 @@ function handleDragFilterRight(event) {
     }
 
     // Map the rotation angle to filter frequency values
-    const filterFrequencyRight = ((lphpRightFilterCurrentAngle + maximumRotation) / (2 * maximumRotation)) * 2000; // Frequency range from 0 to 2000 Hz
-    rightTrackFilter.frequency.value = filterFrequencyRight;
+    const filterFrequencyLeft = ((lphpRightFilterCurrentAngle + maximumRotation) / (2 * maximumRotation)) * 2000; // Frequency range from 0 to 2000 Hz
+    rightTrackFilter.frequency.value = filterFrequencyLeft;
 
     // Rotate the handle visually
     lphpRightHandle.style.transform = `rotate(${lphpRightFilterCurrentAngle}deg)`;
 }
 
-// Function to stop dragging for the right filter
-function stopDragFilterRight() {
+// Function to stop dragging for the left filter
+function stopDragLPHPRight() {
     lphpRightFilterDragging = false;
 }
 
-// Event listeners for the right handle
-lphpRightHandle.addEventListener('mousedown', startDragFilterRight);
-document.addEventListener('mousemove', handleDragFilterRight);
-document.addEventListener('mouseup', stopDragFilterRight);
+// Event listeners for the left handle
+lphpRightHandle.addEventListener('mousedown', startDragLPHPRight);
+document.addEventListener('mousemove', handleDragLPHPRight);
+document.addEventListener('mouseup', stopDragLPHPRight);
 
-/***** END: Filter Handle Controls for Right Side ******/
+/***** END: Filter Handle Controls for Left Right ******/
 
 
 
