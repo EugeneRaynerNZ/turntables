@@ -54,76 +54,76 @@ rightTrackFilter.connect(masterGainNode);
 /***** START: Filter Handle Controls for Left Side ******/
 
 // SVG Elements
-const lowPassLeftHandle = document.querySelector('.lp-hp--left');
+const lphpLeftHandle = document.querySelector('.lp-hp--left');
 
 // Variables to track dragging state
-let isDraggingLeft = false;
-let startAngleLeft = 0;
-let currentAngleLeft = 0;
-const maximumRotation = 110; // Maximum allowable rotation angle
+let lphpLeftFilterDragging = false;
+let lphpLeftFilterStartAngle = 0;
+let lphpLeftFilterCurrentAngle = 0;
+const maximumRotation = 140; // Maximum allowable rotation angle
 
 // Function to handle drag start for the left filter
-function startDragFilterLeft(event) {
-    isDraggingLeft = true;
+function startDragLPHPLeft(event) {
+    lphpLeftFilterDragging = true;
 
-    const rect = lowPassLeftHandle.getBoundingClientRect();
+    const rect = lphpLeftHandle.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
     const centerY = rect.top + rect.height / 2;
-    startAngleLeft = Math.atan2(event.clientY - centerY, event.clientX - centerX) * (180 / Math.PI);
+    lphpLeftFilterStartAngle = Math.atan2(event.clientY - centerY, event.clientX - centerX) * (180 / Math.PI);
     event.preventDefault(); // Prevent default drag behavior
 }
 
 // Function to handle dragging for the left filter
-function handleDragFilterLeft(event) {
-    if (!isDraggingLeft) return;
+function handleDragLPHPLeft(event) {
+    if (!lphpLeftFilterDragging) return;
 
-    const rect = lowPassLeftHandle.getBoundingClientRect();
+    const rect = lphpLeftHandle.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
     const centerY = rect.top + rect.height / 2;
 
     const newAngleLeft = Math.atan2(event.clientY - centerY, event.clientX - centerX) * (180 / Math.PI);
-    let angleDiffLeft = newAngleLeft - startAngleLeft;
+    let angleDiffLeft = newAngleLeft - lphpLeftFilterStartAngle;
 
     // Adjust angle difference to handle the rotation correctly
     if (angleDiffLeft < -180) angleDiffLeft += 360;
     if (angleDiffLeft > 180) angleDiffLeft -= 360;
 
-    currentAngleLeft += angleDiffLeft;
-    startAngleLeft = newAngleLeft;
+    lphpLeftFilterCurrentAngle += angleDiffLeft;
+    lphpLeftFilterStartAngle = newAngleLeft;
 
     // Restrict rotation between -110 degrees and +110 degrees
-    if (currentAngleLeft > maximumRotation) {
-        currentAngleLeft = maximumRotation;
-    } else if (currentAngleLeft < -maximumRotation) {
-        currentAngleLeft = -maximumRotation;
+    if (lphpLeftFilterCurrentAngle > maximumRotation) {
+        lphpLeftFilterCurrentAngle = maximumRotation;
+    } else if (lphpLeftFilterCurrentAngle < -maximumRotation) {
+        lphpLeftFilterCurrentAngle = -maximumRotation;
     }
 
     // Activate filters based on rotation direction for the left filter
-    if (currentAngleLeft < 0) {
+    if (lphpLeftFilterCurrentAngle < 0) {
         // If dragging counter-clockwise, activate lowpass filter
         leftTrackFilter.type = 'lowpass';
-    } else if (currentAngleLeft > 0) {
+    } else if (lphpLeftFilterCurrentAngle > 0) {
         // If dragging clockwise, activate highpass filter
         leftTrackFilter.type = 'highpass';
     }
 
     // Map the rotation angle to filter frequency values
-    const filterFrequencyLeft = ((currentAngleLeft + maximumRotation) / (2 * maximumRotation)) * 2000; // Frequency range from 0 to 2000 Hz
+    const filterFrequencyLeft = ((lphpLeftFilterCurrentAngle + maximumRotation) / (2 * maximumRotation)) * 2000; // Frequency range from 0 to 2000 Hz
     leftTrackFilter.frequency.value = filterFrequencyLeft;
 
     // Rotate the handle visually
-    lowPassLeftHandle.style.transform = `rotate(${currentAngleLeft}deg)`;
+    lphpLeftHandle.style.transform = `rotate(${lphpLeftFilterCurrentAngle}deg)`;
 }
 
 // Function to stop dragging for the left filter
-function stopDragFilterLeft() {
-    isDraggingLeft = false;
+function stopDragLPHPLeft() {
+    lphpLeftFilterDragging = false;
 }
 
 // Event listeners for the left handle
-lowPassLeftHandle.addEventListener('mousedown', startDragFilterLeft);
-document.addEventListener('mousemove', handleDragFilterLeft);
-document.addEventListener('mouseup', stopDragFilterLeft);
+lphpLeftHandle.addEventListener('mousedown', startDragLPHPLeft);
+document.addEventListener('mousemove', handleDragLPHPLeft);
+document.addEventListener('mouseup', stopDragLPHPLeft);
 
 /***** END: Filter Handle Controls for Left Side ******/
 
@@ -132,73 +132,73 @@ document.addEventListener('mouseup', stopDragFilterLeft);
 /***** START: Filter Handle Controls for Right Side ******/
 
 // SVG Elements for Right Filter
-const lowPassRightHandle = document.querySelector('.lp-hp--right');
+const lphpRightHandle = document.querySelector('.lp-hp--right');
 
 // Variables to track dragging state for the right filter
-let isDraggingRight = false;
-let startAngleRight = 0;
-let currentAngleRight = 0;
+let lphpRightFilterDragging = false;
+let lphpRightFilterStartAngle = 0;
+let lphpRightFilterCurrentAngle = 0;
 
 // Function to handle drag start for the right filter
 function startDragFilterRight(event) {
-    isDraggingRight = true;
+    lphpRightFilterDragging = true;
 
-    const rect = lowPassRightHandle.getBoundingClientRect();
+    const rect = lphpRightHandle.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
     const centerY = rect.top + rect.height / 2;
-    startAngleRight = Math.atan2(event.clientY - centerY, event.clientX - centerX) * (180 / Math.PI);
+    lphpRightFilterStartAngle = Math.atan2(event.clientY - centerY, event.clientX - centerX) * (180 / Math.PI);
     event.preventDefault(); // Prevent default drag behavior
 }
 
 // Function to handle dragging for the right filter
 function handleDragFilterRight(event) {
-    if (!isDraggingRight) return;
+    if (!lphpRightFilterDragging) return;
 
-    const rect = lowPassRightHandle.getBoundingClientRect();
+    const rect = lphpRightHandle.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
     const centerY = rect.top + rect.height / 2;
 
     const newAngleRight = Math.atan2(event.clientY - centerY, event.clientX - centerX) * (180 / Math.PI);
-    let angleDiffRight = newAngleRight - startAngleRight;
+    let angleDiffRight = newAngleRight - lphpRightFilterStartAngle;
 
     // Adjust angle difference to handle the rotation correctly
     if (angleDiffRight < -180) angleDiffRight += 360;
     if (angleDiffRight > 180) angleDiffRight -= 360;
 
-    currentAngleRight += angleDiffRight;
-    startAngleRight = newAngleRight;
+    lphpRightFilterCurrentAngle += angleDiffRight;
+    lphpRightFilterStartAngle = newAngleRight;
 
     // Restrict rotation between -110 degrees and +110 degrees
-    if (currentAngleRight > maximumRotation) {
-        currentAngleRight = maximumRotation;
-    } else if (currentAngleRight < -maximumRotation) {
+    if (lphpRightFilterCurrentAngle > maximumRotation) {
+        lphpRightFilterCurrentAngle = maximumRotation;
+    } else if (lphpRightFilterCurrentAngle < -maximumRotation) {
         currentAngleRight = -maximumRotation;
-    }
+    }lphpRightFilterCurrentAngle
 
     // Activate filters based on rotation direction for the right filter
-    if (currentAngleRight < 0) {
+    if (lphpRightFilterCurrentAngle < 0) {
         // If dragging counter-clockwise, activate lowpass filter
         rightTrackFilter.type = 'lowpass';
-    } else if (currentAngleRight > 0) {
+    } else if (lphpRightFilterCurrentAngle > 0) {
         // If dragging clockwise, activate highpass filter
         rightTrackFilter.type = 'highpass';
     }
 
     // Map the rotation angle to filter frequency values
-    const filterFrequencyRight = ((currentAngleRight + maximumRotation) / (2 * maximumRotation)) * 2000; // Frequency range from 0 to 2000 Hz
+    const filterFrequencyRight = ((lphpRightFilterCurrentAngle + maximumRotation) / (2 * maximumRotation)) * 2000; // Frequency range from 0 to 2000 Hz
     rightTrackFilter.frequency.value = filterFrequencyRight;
 
     // Rotate the handle visually
-    lowPassRightHandle.style.transform = `rotate(${currentAngleRight}deg)`;
+    lphpRightHandle.style.transform = `rotate(${lphpRightFilterCurrentAngle}deg)`;
 }
 
 // Function to stop dragging for the right filter
 function stopDragFilterRight() {
-    isDraggingRight = false;
+    lphpRightFilterDragging = false;
 }
 
 // Event listeners for the right handle
-lowPassRightHandle.addEventListener('mousedown', startDragFilterRight);
+lphpRightHandle.addEventListener('mousedown', startDragFilterRight);
 document.addEventListener('mousemove', handleDragFilterRight);
 document.addEventListener('mouseup', stopDragFilterRight);
 
