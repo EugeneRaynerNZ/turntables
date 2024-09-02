@@ -1,16 +1,3 @@
-/* svg {
-    transform-origin: center center;
-}
-
-svg * { 
-    transform-box: fill-box;
-} */
-
-/* .rotating {
-    transform-origin: center center;
-    transform-box: fill-box;
-} */
-
 @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
 
 html {
@@ -25,14 +12,24 @@ svg text {
     fill: rgb(83 195 144);
 }
 
-.turntables--container {
+.turntable--container {
     position: relative;
 }
-.analyzer {
-    margin-top: 20px;
+#visualizer {
     position: absolute;
-    top: 96px;
-    left: 660px;
+    top: 109px;
+    left: 652px;
+    width: 118px;
+    height: 183px;
+}
+
+.filter {
+    transform-origin: center center;
+    transform-box: fill-box;
+}
+
+.handle {
+    cursor: pointer;
 }
 
 .left-table--start, .right-table--start, #VolumeLeftHandle, #VolumeRightHandle, .left-table--add, .right-table--add {

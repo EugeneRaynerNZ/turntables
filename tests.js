@@ -66,64 +66,75 @@ let rotationAngle2 = 0;
 /***** START: Custom Audio Player Class ******/
 
 class CustomAudioPlayer {
-    constructor(audioContext, buffer, gainNode) {
-        this.audioContext = audioContext;
-        this.buffer = buffer;
-        this.gainNode = gainNode;
-        this.isPlaying = false;
-        this.startTime = 0;
-        this.pauseTime = 0;
-        this.source = null;
-    }
+  constructor(audioContext, buffer, gainNode, filterNode = null) {
+      this.audioContext = audioContext;
+      this.buffer = buffer;
+      this.gainNode = gainNode;
+      this.filterNode = filterNode;  // Add the filter node as an optional parameter
+      this.isPlaying = false;
+      this.startTime = 0;
+      this.pauseTime = 0;
+      this.source = null;
+  }
 
-    play() {
-        if (this.isPlaying) return;
-        
-        this.source = this.audioContext.createBufferSource();
-        this.source.buffer = this.buffer;
-        this.source.connect(this.gainNode);
-        
-        const offset = this.pauseTime;
-        this.source.start(0, offset);
-        this.startTime = this.audioContext.currentTime - offset;
-        this.isPlaying = true;
+  play() {
+      if (this.isPlaying) return;
+      
+      this.source = this.audioContext.createBufferSource();
+      this.source.buffer = this.buffer;
 
-        this.source.onended = () => {
-            if (this.isPlaying) {
-                this.pause();
-                this.pauseTime = 0;
-            }
-        };
-    }
+      // Connect the source to the filter if it exists, otherwise directly to gain node
+      if (this.filterNode) {
+          this.source.connect(this.filterNode);
+          this.filterNode.connect(this.gainNode);
+      } else {
+          this.source.connect(this.gainNode);
+      }
+      
+      this.gainNode.connect(this.audioContext.destination);
 
-    pause() {
-        if (!this.isPlaying) return;
-        
-        const elapsed = this.audioContext.currentTime - this.startTime;
-        this.pauseTime = elapsed;
-        this.source.stop();
-        this.isPlaying = false;
-    }
+      const offset = this.pauseTime;
+      this.source.start(0, offset);
+      this.startTime = this.audioContext.currentTime - offset;
+      this.isPlaying = true;
 
-    getCurrentTime() {
-        if (this.isPlaying) {
-            return this.audioContext.currentTime - this.startTime;
-        }
-        return this.pauseTime;
-    }
+      this.source.onended = () => {
+          if (this.isPlaying) {
+              this.pause();
+              this.pauseTime = 0;
+          }
+      };
+  }
 
-    setCurrentTime(time) {
-        if (this.isPlaying) {
-            this.pause();
-            this.pauseTime = time;
-            this.play();
-        } else {
-            this.pauseTime = time;
-        }
-    }
+  pause() {
+      if (!this.isPlaying) return;
+      
+      const elapsed = this.audioContext.currentTime - this.startTime;
+      this.pauseTime = elapsed;
+      this.source.stop();
+      this.isPlaying = false;
+  }
+
+  getCurrentTime() {
+      if (this.isPlaying) {
+          return this.audioContext.currentTime - this.startTime;
+      }
+      return this.pauseTime;
+  }
+
+  setCurrentTime(time) {
+      if (this.isPlaying) {
+          this.pause();
+          this.pauseTime = time;
+          this.play();
+      } else {
+          this.pauseTime = time;
+      }
+  }
 }
 
-/***** END: Custom Audio Player Class ******/
+/***** END: Updated Custom Audio Player Class ******/
+
 
 
 
@@ -321,46 +332,71 @@ class VolumeControl extends FilterControl {
     }
 }
 
-// Initialize the dual filter controls
-const dualFilterElementLeft = document.querySelector('.lp-hp--left');
-const dualFilterElementRight = document.querySelector('.lp-hp--right');
-const highShelfElementLeft = document.querySelector('.high-filter--left');
-const highShelfElementRight = document.querySelector('.high-filter--right');
-const lowShelfElementLeft = document.querySelector('.low-filter--left');
-const lowShelfElementRight = document.querySelector('.low-filter--right');
-const bandpassElementLeft = document.querySelector('.mid-filter--left');
-const bandpassElementRight = document.querySelector('.mid-filter--right');
 
-const lowPassFilterLeft = audioContext.createBiquadFilter();
-const highPassFilterLeft = audioContext.createBiquadFilter();
-const lowPassFilterRight = audioContext.createBiquadFilter();
-const highPassFilterRight = audioContext.createBiquadFilter();
+// Audio setup
+// const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+// const gainNode1 = audioContext.createGain();
+// Create high shelf filter for the left track
 const highShelfFilterLeft = audioContext.createBiquadFilter();
-const highShelfFilterRight = audioContext.createBiquadFilter();
-const bandpassFilterLeft = audioContext.createBiquadFilter();
-const bandpassFilterRight = audioContext.createBiquadFilter();
-const lowShelfFilterLeft = audioContext.createBiquadFilter();
-const lowShelfFilterRight = audioContext.createBiquadFilter();
-
-lowPassFilterLeft.type = 'lowpass';
-highPassFilterLeft.type = 'highpass';
-lowPassFilterRight.type = 'lowpass';
-highPassFilterRight.type = 'highpass';
 highShelfFilterLeft.type = 'highshelf';
-highShelfFilterRight.type = 'highshelf';
-bandpassFilterLeft.type = 'bandpass';
-bandpassFilterRight.type = 'bandpass';
-lowShelfFilterLeft.type = 'lowshelf';
-lowShelfFilterRight.type = 'lowshelf';
 
-const dualFilterControlRight = new DualFilterControl(dualFilterElementRight, lowPassFilterRight, highPassFilterRight, 'right');
-const dualFilterControlLeft = new DualFilterControl(dualFilterElementLeft, lowPassFilterLeft, highPassFilterLeft, 'left');
+// Initialize HighShelfFilter control
+const highShelfElementLeft = document.querySelector('.high-filter--left');
 const highShelfControlLeft = new HighShelfFilter(highShelfElementLeft, highShelfFilterLeft, 'highshelf', 'left');
-const highShelfControlRight = new HighShelfFilter(highShelfElementRight, highShelfFilterRight, 'highshelf', 'right');
-const lowShelfControlLeft = new LowShelfFilter(lowShelfElementLeft, lowShelfFilterLeft, 'lowshelf', 'left');
-const lowShelfControlRight = new LowShelfFilter(lowShelfElementRight, lowShelfFilterRight, 'lowshelf', 'right');
-const bandpassControlLeft = new BandpassFilter(bandpassElementLeft, bandpassFilterLeft, 'bandpass', 'left');
-const bandpassControlRight = new BandpassFilter(bandpassElementRight, bandpassFilterRight, 'bandpass', 'right');
+
+// When loading Audio 1 and creating player 1
+if (!player1) {
+    player1 = new CustomAudioPlayer(audioContext, audioBuffer1, gainNode1, highShelfFilterLeft);
+}
+
+// Toggle audio play/pause for player 1 with the filter connected
+// toggleButton1.addEventListener('click', function() {
+//     toggleAudio(1);
+// });
+
+
+
+
+// // Initialize the dual filter controls
+// const dualFilterElementLeft = document.querySelector('.lp-hp--left');
+// const dualFilterElementRight = document.querySelector('.lp-hp--right');
+// const highShelfElementLeft = document.querySelector('.high-filter--left');
+// const highShelfElementRight = document.querySelector('.high-filter--right');
+// const lowShelfElementLeft = document.querySelector('.low-filter--left');
+// const lowShelfElementRight = document.querySelector('.low-filter--right');
+// const bandpassElementLeft = document.querySelector('.mid-filter--left');
+// const bandpassElementRight = document.querySelector('.mid-filter--right');
+
+// const lowPassFilterLeft = audioContext.createBiquadFilter();
+// const highPassFilterLeft = audioContext.createBiquadFilter();
+// const lowPassFilterRight = audioContext.createBiquadFilter();
+// const highPassFilterRight = audioContext.createBiquadFilter();
+// const highShelfFilterLeft = audioContext.createBiquadFilter();
+// const highShelfFilterRight = audioContext.createBiquadFilter();
+// const bandpassFilterLeft = audioContext.createBiquadFilter();
+// const bandpassFilterRight = audioContext.createBiquadFilter();
+// const lowShelfFilterLeft = audioContext.createBiquadFilter();
+// const lowShelfFilterRight = audioContext.createBiquadFilter();
+
+// lowPassFilterLeft.type = 'lowpass';
+// highPassFilterLeft.type = 'highpass';
+// lowPassFilterRight.type = 'lowpass';
+// highPassFilterRight.type = 'highpass';
+// highShelfFilterLeft.type = 'highshelf';
+// highShelfFilterRight.type = 'highshelf';
+// bandpassFilterLeft.type = 'bandpass';
+// bandpassFilterRight.type = 'bandpass';
+// lowShelfFilterLeft.type = 'lowshelf';
+// lowShelfFilterRight.type = 'lowshelf';
+
+// const dualFilterControlRight = new DualFilterControl(dualFilterElementRight, lowPassFilterRight, highPassFilterRight, 'right');
+// const dualFilterControlLeft = new DualFilterControl(dualFilterElementLeft, lowPassFilterLeft, highPassFilterLeft, 'left');
+// const highShelfControlLeft = new HighShelfFilter(highShelfElementLeft, highShelfFilterLeft, 'highshelf', 'left');
+// const highShelfControlRight = new HighShelfFilter(highShelfElementRight, highShelfFilterRight, 'highshelf', 'right');
+// const lowShelfControlLeft = new LowShelfFilter(lowShelfElementLeft, lowShelfFilterLeft, 'lowshelf', 'left');
+// const lowShelfControlRight = new LowShelfFilter(lowShelfElementRight, lowShelfFilterRight, 'lowshelf', 'right');
+// const bandpassControlLeft = new BandpassFilter(bandpassElementLeft, bandpassFilterLeft, 'bandpass', 'left');
+// const bandpassControlRight = new BandpassFilter(bandpassElementRight, bandpassFilterRight, 'bandpass', 'right');
 
 
 // gainNode1
@@ -376,59 +412,31 @@ const bandpassControlRight = new BandpassFilter(bandpassElementRight, bandpassFi
 //   .connect(masterGainNode);
 
 
-// Routing for the left audio source (gainNode1)
-gainNode1
-  .connect(lowShelfFilterLeft)
-  .connect(highShelfFilterLeft)
-  .connect(bandpassFilterLeft)
-  .connect(lowPassFilterLeft)
-  .connect(highPassFilterLeft)
-  .connect(masterGainNode); // Ensure to connect the final filter to the master gain
+// // Routing for the left audio source (gainNode1)
+// gainNode1
+//   .connect(lowShelfFilterLeft)
+//   .connect(highShelfFilterLeft)
+//   .connect(bandpassFilterLeft)
+//   .connect(lowPassFilterLeft)
+//   .connect(highPassFilterLeft)
+//   .connect(masterGainNode); // Ensure to connect the final filter to the master gain
 
-// Routing for the right audio source (gainNode2)
-gainNode2
-  .connect(lowShelfFilterRight)
-  .connect(highShelfFilterRight)
-  .connect(bandpassFilterRight)
-  .connect(lowPassFilterRight)
-  .connect(highPassFilterRight)
-  .connect(masterGainNode); // Ensure to connect the final filter to the master gain
-
-
-bandpassFilterLeft.frequency.value = 1000; 
-bandpassFilterLeft.Q.value = 1; 
-lowShelfFilterLeft.frequency.value = 100; 
-bandpassFilterRight.frequency.value = 1000; 
-bandpassFilterRight.Q.value = 1; 
-lowShelfFilterRight.frequency.value = 100; 
-
-// Connect the dual filters to the audio graph
-// gainNode1.connect(lowShelfFilterLeft);
-// lowShelfFilterLeft.connect(highShelfFilterLeft);
-// highShelfFilterLeft.connect(bandpassFilterLeft);
-
-// gainNode2.connect(lowShelfFilterRight);
-// lowShelfFilterRight.connect(highShelfFilterRight);
-// highShelfFilterRight.connect(bandpassFilterRight);
-
-// Connect the remaining filters in the chain
-// highShelfFilterLeft.connect(bandpassFilterLeft);
-// bandpassFilterLeft.connect(lowShelfFilterLeft);
-// lowShelfFilterLeft.connect(masterGainNode);
-
-// highShelfFilterRight.connect(bandpassFilterRight);
-// bandpassFilterRight.connect(lowShelfFilterRight);
-// lowShelfFilterRight.connect(masterGainNode);
-
-// Set default values for filters to avoid distortion
+// // Routing for the right audio source (gainNode2)
+// gainNode2
+//   .connect(lowShelfFilterRight)
+//   .connect(highShelfFilterRight)
+//   .connect(bandpassFilterRight)
+//   .connect(lowPassFilterRight)
+//   .connect(highPassFilterRight)
+//   .connect(masterGainNode); // Ensure to connect the final filter to the master gain
 
 
-
-
-
-
-
-
+// bandpassFilterLeft.frequency.value = 1000; 
+// bandpassFilterLeft.Q.value = 1; 
+// lowShelfFilterLeft.frequency.value = 100; 
+// bandpassFilterRight.frequency.value = 1000; 
+// bandpassFilterRight.Q.value = 1; 
+// lowShelfFilterRight.frequency.value = 100; 
 
 /***** END: Create Filters for Each Track ******/
 
